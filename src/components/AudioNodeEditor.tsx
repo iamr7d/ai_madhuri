@@ -2,14 +2,12 @@ import React, { useState, useCallback, useEffect, useMemo, forwardRef, useImpera
 import ReactFlow, { 
   Background, 
   Controls,
-  Panel,
   useReactFlow,
   Node,
   Edge,
   Connection,
   NodeChange,
   EdgeChange,
-  NodeTypes,
   applyNodeChanges,
   applyEdgeChanges,
   addEdge,
@@ -20,13 +18,8 @@ import ReactFlow, {
 import { useTheme, alpha } from '@mui/material/styles';
 import { Box, Paper, Typography, TextField, InputAdornment, IconButton, Button, Menu, MenuItem, Tooltip } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
-import AddIcon from '@mui/icons-material/Add';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
-import MusicNoteIcon from '@mui/icons-material/MusicNote';
-import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
-import WbSunnyIcon from '@mui/icons-material/WbSunny';
-import NewspaperIcon from '@mui/icons-material/Newspaper';
 import 'reactflow/dist/style.css';
 import useHistory from '../hooks/useHistory';
 import MusicNode from './nodes/MusicNode';
@@ -34,9 +27,17 @@ import TTSNode from './nodes/TTSNode';
 import WeatherNode from './nodes/WeatherNode';
 import NewsNode from './nodes/NewsNode';
 import EffectNode from './nodes/EffectNode';
-import SequenceInput from './SequenceInput';
-import NodeOptionsBar from './NodeOptionsBar';
+import NodeGenerator from './NodeGenerator';
 import FlowHeader from './FlowHeader';
+import GraphicEqIcon from '@mui/icons-material/GraphicEq';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import InfoIcon from '@mui/icons-material/Info';
+import NewspaperIcon from '@mui/icons-material/Newspaper';
+import TrafficIcon from '@mui/icons-material/Traffic';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (sequence: string) => void) => void }> = ({ onSequencePlay }) => {
   const {
@@ -51,8 +52,6 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
 
   const [sequence, setSequence] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const theme = useTheme();
   const { getNode, fitView, onNodesChange: onNodesChangeBase, onEdgesChange: onEdgesChangeBase, onConnect: onConnectBase } = useReactFlow();
@@ -239,10 +238,6 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
     }
   };
 
-  const handleAddNode = useCallback((type: string) => {
-    createNode(type, { x: 100, y: window.innerHeight / 2 });
-  }, [createNode]);
-
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => {
@@ -379,15 +374,98 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
     }
   }, [onSequencePlay, handleSequencePlay]);
 
-  return (
-    <Box sx={{ width: '100%', height: '100vh', position: 'relative' }}>
-      {/* Top sequence input */}
-      <SequenceInput
-        value={sequence}
-        onChange={handleInputChange}
-        onClear={clearSequence}
-      />
+  const handleGenerateNodes = useCallback((sequence: string) => {
+    const letters = sequence.toUpperCase().split(/[,\s]+/).filter(Boolean);
+    const newNodes: Node[] = letters.map((letter, index) => {
+      let label = '';
+      let color = '';
       
+      switch (letter) {
+        case 'A':
+          label = 'Audio';
+          color = '#4f46e5'; // Indigo
+          break;
+        case 'S':
+          label = 'Speech';
+          color = '#8b5cf6'; // Purple
+          break;
+        case 'W':
+          label = 'Weather';
+          color = '#06b6d4'; // Cyan
+          break;
+        case 'I':
+          label = 'Info';
+          color = '#3b82f6'; // Blue
+          break;
+        case 'N':
+          label = 'News';
+          color = '#ec4899'; // Pink
+          break;
+        case 'T':
+          label = 'Traffic';
+          color = '#f97316'; // Orange
+          break;
+        case 'O':
+          label = 'Other';
+          color = '#6366f1'; // Indigo
+          break;
+        case 'M':
+          label = 'Music';
+          color = '#10b981'; // Emerald
+          break;
+        default:
+          label = 'Unknown';
+          color = '#6b7280'; // Gray
+      }
+
+      return {
+        id: `${letter}-${Date.now()}-${index}`,
+        type: 'audioNode',
+        position: { 
+          x: 100 + (index * 180), 
+          y: 100 + (Math.sin(index) * 50) 
+        },
+        data: { 
+          label,
+          color,
+          icon: getNodeIcon(label)
+        }
+      };
+    });
+
+    setGraphState((nds) => ({ nodes: [...nds.nodes, ...newNodes], edges: nds.edges }));
+    
+    // Fit view after nodes are added
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 800 });
+    }, 100);
+  }, [fitView]);
+
+  const getNodeIcon = (label: string) => {
+    switch (label) {
+      case 'Audio':
+        return <GraphicEqIcon />;
+      case 'Speech':
+        return <RecordVoiceOverIcon />;
+      case 'Weather':
+        return <WbSunnyIcon />;
+      case 'Info':
+        return <InfoIcon />;
+      case 'News':
+        return <NewspaperIcon />;
+      case 'Traffic':
+        return <TrafficIcon />;
+      case 'Other':
+        return <MoreHorizIcon />;
+      case 'Music':
+        return <MusicNoteIcon />;
+      default:
+        return <HelpOutlineIcon />;
+    }
+  };
+
+  return (
+    <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -395,142 +473,71 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        deleteKeyCode={['Backspace', 'Delete']}
-        multiSelectionKeyCode={['Control', 'Meta']}
-        defaultEdgeOptions={{
-          type: 'smoothstep',
-          style: {
-            stroke: '#6F7EAE',
-            strokeWidth: 2,
-          },
-          animated: true
-        }}
-        connectionMode="loose"
         fitView
-        style={{
-          backgroundColor: 'rgba(26, 32, 53, 0.95)',
-          backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(50, 60, 100, 0.1) 0%, rgba(26, 32, 53, 0) 100%)',
-        }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
+        minZoom={0.5}
+        maxZoom={2}
+        snapToGrid
+        snapGrid={[16, 16]}
       >
-        <Background
-          gap={24}
-          size={2}
-          color="rgba(255, 255, 255, 0.05)"
-        />
+        <Background />
         <Controls 
-          showZoom={false}
           style={{
-            backgroundColor: 'rgba(26, 32, 53, 0.8)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            right: '24px',
+            left: 'auto',
+            backgroundColor: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
           }}
+          className="controls-container"
         />
-        
-        {/* Top-right panel with undo/redo and add node buttons */}
-        <Panel position="top-right">
-          <Box sx={{ display: 'flex', gap: 1, p: 1 }}>
-            <Tooltip title="Undo (Ctrl+Z)">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={undo}
-                  disabled={!canUndo}
-                  sx={{
-                    backgroundColor: 'rgba(26, 32, 53, 0.8)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    '&:hover': { 
-                      backgroundColor: 'rgba(26, 32, 53, 0.9)',
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: 'rgba(26, 32, 53, 0.4)',
-                      color: 'rgba(255, 255, 255, 0.3)',
-                    }
-                  }}
-                >
-                  <UndoIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-            
-            <Tooltip title="Redo (Ctrl+Shift+Z)">
-              <span>
-                <IconButton
-                  size="small"
-                  onClick={redo}
-                  disabled={!canRedo}
-                  sx={{
-                    backgroundColor: 'rgba(26, 32, 53, 0.8)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    '&:hover': { 
-                      backgroundColor: 'rgba(26, 32, 53, 0.9)',
-                    },
-                    '&.Mui-disabled': {
-                      backgroundColor: 'rgba(26, 32, 53, 0.4)',
-                      color: 'rgba(255, 255, 255, 0.3)',
-                    }
-                  }}
-                >
-                  <RedoIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={(e) => setMenuAnchor(e.currentTarget)}
-              sx={{
-                backgroundColor: 'rgba(26, 32, 53, 0.8)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                '&:hover': { 
-                  backgroundColor: 'rgba(26, 32, 53, 0.9)',
-                },
-                textTransform: 'none',
-                px: 2,
-              }}
-            >
-              Add Node
-            </Button>
-          </Box>
-        </Panel>
-
-        {/* Add node menu */}
-        <Menu
-          anchorEl={menuAnchor}
-          open={Boolean(menuAnchor)}
-          onClose={() => setMenuAnchor(null)}
-          PaperProps={{
-            sx: {
-              backgroundColor: 'rgba(26, 32, 53, 0.95)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '8px',
-              mt: 1,
-            }
-          }}
-        >
-          <MenuItem onClick={() => handleAddNode('musicNode')}>
-            <MusicNoteIcon sx={{ mr: 1 }} /> Music Node
-          </MenuItem>
-          <MenuItem onClick={() => handleAddNode('ttsNode')}>
-            <RecordVoiceOverIcon sx={{ mr: 1 }} /> TTS Node
-          </MenuItem>
-          <MenuItem onClick={() => handleAddNode('weatherNode')}>
-            <WbSunnyIcon sx={{ mr: 1 }} /> Weather Node
-          </MenuItem>
-          <MenuItem onClick={() => handleAddNode('newsNode')}>
-            <NewspaperIcon sx={{ mr: 1 }} /> News Node
-          </MenuItem>
-        </Menu>
       </ReactFlow>
+      <style>
+        {`
+          .controls-container button {
+            width: 40px !important;
+            height: 40px !important;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 12px !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          .controls-container button:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.25) !important;
+            color: white !important;
+          }
+
+          .controls-container button:active {
+            transform: translateY(0);
+          }
+
+          .controls-container button svg {
+            width: 20px !important;
+            height: 20px !important;
+            filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+          }
+
+          .controls-container {
+            padding: 8px !important;
+            background: transparent !important;
+          }
+        `}
+      </style>
+      <NodeGenerator onGenerate={handleGenerateNodes} />
     </Box>
   );
 };
