@@ -7,6 +7,7 @@
   NODE_VERSION = "18"
   CI = "false"
   NODE_OPTIONS = "--max_old_space_size=4096"
+  PYTHON_VERSION = "false"  # Disable Python installation
 
 [[redirects]]
   from = "/api/*"
