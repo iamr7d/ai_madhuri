@@ -129,7 +129,16 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
   };
 
   return (
-    <BaseNode {...props}>
+    <BaseNode
+      id={id}
+      type={props.type}
+      data={{
+        label: data.label || 'Music Player',
+        title: 'Music Player',
+        icon: <VolumeUpIcon />,
+        selected: props.selected
+      }}
+    >
       <Box sx={{ width: '100%', height: '60px', mb: 1 }}>
         <canvas 
           ref={canvasRef}

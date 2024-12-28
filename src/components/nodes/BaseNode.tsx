@@ -14,7 +14,9 @@ export interface BaseNodeProps {
   children: React.ReactNode;
 }
 
-const BaseNode: React.FC<BaseNodeProps> = ({ children, data, id }) => {
+const BaseNode: React.FC<BaseNodeProps> = ({ children, data = {}, id }) => {
+  const { icon, title, selected } = data;
+
   return (
     <Paper
       elevation={3}
@@ -24,17 +26,17 @@ const BaseNode: React.FC<BaseNodeProps> = ({ children, data, id }) => {
         backgroundColor: 'background.paper',
         borderRadius: 2,
         border: (theme) =>
-          `2px solid ${data.selected ? theme.palette.primary.main : theme.palette.divider}`,
+          `2px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
       }}
     >
       <Handle type="target" position={Position.Top} id={`${id}-target`} />
       <Box>
-        {data.icon && (
+        {icon && (
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            {data.icon}
-            {data.title && (
+            {icon}
+            {title && (
               <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                {data.title}
+                {title}
               </Typography>
             )}
           </Box>

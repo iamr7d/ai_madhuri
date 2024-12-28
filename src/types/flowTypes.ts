@@ -1,18 +1,28 @@
-import { Node, Edge } from '@reactflow/core';
-import * as Tone from 'tone';
+import { Node, Edge } from 'reactflow';
+import { ReactNode } from 'react';
 
 export type NodeType = 'weather' | 'news' | 'tts' | 'audioSource';
 
 export interface NodeData {
   label: string;
+  title?: string;
+  icon?: ReactNode;
+  selected?: boolean;
   audioFile?: File;
   text?: string;
-  title?: string;
-  icon?: React.ReactNode;
-  selected?: boolean;
 }
 
-export type CustomNode = Node<NodeData>;
+export interface CustomNode extends Node<NodeData> {
+  type: NodeType;
+}
+
+export interface AudioContextStore {
+  isInitialized: boolean;
+  isLoading: boolean;
+  error: string | null;
+  initializeAudioContext: () => Promise<void>;
+  closeAudioContext: () => void;
+}
 
 export interface AudioStore {
   nodes: Map<string, Tone.Player>;
@@ -27,12 +37,6 @@ export interface AudioStore {
   playSequence: (sequence: string) => void;
   stopSequence: () => void;
   setVolume: (volume: number) => void;
-}
-
-export interface AudioContextStore {
-  context: Tone.Context | null;
-  initializeAudioContext: () => void;
-  closeAudioContext: () => void;
 }
 
 export interface GraphState {

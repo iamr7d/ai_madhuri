@@ -11,9 +11,10 @@ interface WeatherNodeProps {
   id: string;
   data: NodeData;
   type: string;
+  selected?: boolean;
 }
 
-const WeatherNode: React.FC<WeatherNodeProps> = ({ id, data, type }) => {
+const WeatherNode: React.FC<WeatherNodeProps> = ({ id, data, type, selected }) => {
   const { isPlaying, playNode, stopNode } = useAudioStore();
 
   const handlePlayStop = () => {
@@ -29,9 +30,10 @@ const WeatherNode: React.FC<WeatherNodeProps> = ({ id, data, type }) => {
       id={id}
       type={type}
       data={{
-        ...data,
-        icon: <CloudIcon />,
+        label: data.label || 'Weather Updates',
         title: 'Weather Updates',
+        icon: <CloudIcon />,
+        selected
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
