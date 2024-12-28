@@ -15,14 +15,14 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DragHandleIcon from '@mui/icons-material/DragHandle';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Track } from '../types';
 
 interface TrackListProps {
   tracks: Track[];
-  onPlayTrack: (id: string) => void;
-  onPauseTrack: (id: string) => void;
-  onDeleteTrack: (id: string) => void;
+  onPlayTrack: (index: number) => void;
+  onPauseTrack: (index: number) => void;
+  onDeleteTrack: (index: number) => void;
   onReorderTracks: (startIndex: number, endIndex: number) => void;
 }
 
@@ -51,20 +51,18 @@ const TrackList: React.FC<TrackListProps> = ({
   return (
     <Paper 
       sx={{ 
-        width: '300px', 
-        maxHeight: 'calc(100vh - 180px)',
-        overflow: 'auto',
-        position: 'fixed',
-        right: 20,
-        top: 80,
+        width: '100%', 
+        maxWidth: 600, 
+        margin: '0 auto',
+        mt: 2,
         backgroundColor: 'background.paper',
+        borderRadius: 2,
+        boxShadow: 3
       }}
     >
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6" component="div">
-          Track List
-        </Typography>
-      </Box>
+      <Typography variant="h6" sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        Track List
+      </Typography>
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="tracks">
           {(provided) => (
@@ -72,65 +70,50 @@ const TrackList: React.FC<TrackListProps> = ({
               {tracks.map((track, index) => (
                 <Draggable key={track.id} draggableId={track.id} index={index}>
                   {(provided) => (
-                    <div
+                    <ListItem
                       ref={provided.innerRef}
                       {...provided.draggableProps}
+                      sx={{
+                        '&:hover': {
+                          backgroundColor: 'action.hover',
+                        },
+                      }}
                     >
-                      <ListItem
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: 'action.hover',
-                          }
-                        }}
-                      >
-                        <div {...provided.dragHandleProps}>
-                          <DragHandleIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                        </div>
-                        <ListItemText 
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                              <Typography variant="body1" sx={{ mr: 1 }}>
-                                {track.title}
-                              </Typography>
-                              <Chip 
-                                label={track.type} 
-                                size="small" 
-                                color={getTrackTypeColor(track.type)}
-                                sx={{ height: 20 }}
-                              />
-                            </Box>
-                          }
-                          secondary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                              <Typography variant="body2" color="text.secondary">
-                                {track.duration}
-                              </Typography>
-                              {track.status === 'error' && (
-                                <Chip 
-                                  label="Error" 
-                                  size="small" 
-                                  color="error" 
-                                  sx={{ ml: 1, height: 20 }} 
-                                />
-                              )}
-                            </Box>
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton 
-                            edge="end" 
-                            onClick={() => track.status === 'playing' ? onPauseTrack(track.id) : onPlayTrack(track.id)} 
-                            sx={{ mr: 1 }}
-                          >
-                            {track.status === 'playing' ? <PauseIcon /> : <PlayArrowIcon />}
-                          </IconButton>
-                          <IconButton edge="end" onClick={() => onDeleteTrack(track.id)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                      <Divider />
-                    </div>
+                      <Box {...provided.dragHandleProps} sx={{ mr: 2 }}>
+                        <DragHandleIcon />
+                      </Box>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Typography variant="subtitle1">{track.title}</Typography>
+                            <Chip 
+                              label={track.type}
+                              size="small"
+                              color={getTrackTypeColor(track.type)}
+                              sx={{ ml: 1 }}
+                            />
+                          </Box>
+                        }
+                        secondary={track.duration}
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          edge="end"
+                          aria-label={track.status === 'playing' ? 'pause' : 'play'}
+                          onClick={() => track.status === 'playing' ? onPauseTrack(index) : onPlayTrack(index)}
+                          sx={{ mr: 1 }}
+                        >
+                          {track.status === 'playing' ? <PauseIcon /> : <PlayArrowIcon />}
+                        </IconButton>
+                        <IconButton
+                          edge="end"
+                          aria-label="delete"
+                          onClick={() => onDeleteTrack(index)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
                   )}
                 </Draggable>
               ))}

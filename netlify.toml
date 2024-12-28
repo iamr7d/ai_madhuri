@@ -18,8 +18,5 @@
   to = "/index.html"
   status = 200
 
-[functions]
-  directory = ".netlify/functions"
-
 [build.processing]
   skip_processing = true
