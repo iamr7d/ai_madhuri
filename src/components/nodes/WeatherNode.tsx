@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Box, 
   IconButton, 
@@ -31,40 +31,46 @@ const WeatherNode: React.FC<WeatherNodeProps> = ({ id, data, selected }) => {
   const [location, setLocation] = useState(data.location || '');
   const [volume, setVolume] = useState(data.volume ?? 1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isPlaying: isAudioPlaying, playNode, stopNode } = useAudioStore();
 
-  const handlePlayPause = () => {
-    if (isAudioPlaying) {
-      stopNode(id);
-    } else {
-      playNode(id);
+  const audioStore = useAudioStore();
+  const isPlaying = audioStore?.isPlaying ?? false;
+  const playNode = audioStore?.playNode ?? (() => {
+    console.error('Audio store not initialized');
+    setError('Audio system not ready');
+  });
+  const stopNode = audioStore?.stopNode ?? (() => {
+    console.error('Audio store not initialized');
+    setError('Audio system not ready');
+  });
+
+  const handlePlayPause = useCallback(() => {
+    try {
+      if (isPlaying) {
+        stopNode(id);
+      } else {
+        playNode(id);
+      }
+    } catch (err) {
+      console.error('Error toggling playback:', err);
+      setError('Failed to toggle playback');
     }
-  };
+  }, [id, isPlaying, playNode, stopNode]);
 
-  const handleLocationChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLocationChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setLocation(event.target.value);
-  };
+  }, []);
 
-  const handleVolumeChange = (_: Event, newValue: number | number[]) => {
+  const handleVolumeChange = useCallback((_: Event, newValue: number | number[]) => {
     const value = Array.isArray(newValue) ? newValue[0] : newValue;
     setVolume(value);
-    if (value === 0) {
-      setIsMuted(true);
-    } else {
-      setIsMuted(false);
-    }
-  };
+    setIsMuted(value === 0);
+  }, []);
 
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-    if (!isMuted) {
-      setVolume(0);
-    } else {
-      setVolume(1);
-    }
-  };
+  const handleMuteToggle = useCallback(() => {
+    setIsMuted(prev => !prev);
+    setVolume(prev => prev === 0 ? 1 : 0);
+  }, []);
 
   return (
     <BaseNode
@@ -128,7 +134,7 @@ const WeatherNode: React.FC<WeatherNodeProps> = ({ id, data, selected }) => {
               },
             }}
           >
-            {isAudioPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+            {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
           </IconButton>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>

@@ -7,51 +7,11 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AudioNodeEditor from './AudioNodeEditor';
 import PlayerBar from './PlayerBar';
 import LoadingAnimation from './LoadingAnimation';
+import { AudioNodeEditorRef } from '../types/audio';
 
-const apiKeys = [
-  {
-    key: 'KEY 01',
-    userId: 'XtCowrtbeUd45CR6CCzTbOOn40x1',
-    secretKey: '88c8697e425d4420b4d7e65cba2b51ba',
-    tokens: 12500
-  },
-  {
-    key: 'KEY 02',
-    userId: 'VWiXMjsdbYeIg80L6gHLbyLtSPb2',
-    secretKey: '27e5f12a5d2544fc85af3c5623b4f6ce',
-    tokens: 25000
-  },
-  {
-    key: 'KEY 03',
-    userId: 'V37qjOCMj9RmPDz0aQUc4EYU2UB3',
-    secretKey: '022ea262c46c4f22bb47fa7428254ca4',
-    tokens: 37500
-  },
-  {
-    key: 'KEY 04',
-    userId: 'BPZbTxkPj5b7Uk9gT0IOHZlCYwf1',
-    secretKey: '9867b73c29784edb95289202f5136cec',
-    tokens: 50000
-  },
-  {
-    key: 'KEY 05',
-    userId: 'MNC7VP0IIees3PxC70NddpazsEt1',
-    secretKey: '9e0d034f3058481986ccc09344e45d61',
-    tokens: 62500
-  },
-  {
-    key: 'KEY 06',
-    userId: 'p8PyssvCgpO3LzhpV2VUPAEu6Xq2',
-    secretKey: '6068eedb25be4eabbc6743df7057aa90',
-    tokens: 75000
-  },
-  {
-    key: 'KEY 07',
-    userId: '6KE6ICewBjeaJl5WnQHS0pIxemz2',
-    secretKey: 'bb7db00a0bcd4b6d9649cad90975c29e',
-    tokens: 87500
-  }
-];
+// Move API keys to environment variables or a secure configuration
+const API_KEY = import.meta.env.VITE_API_KEY || '';
+const API_BACKUP_KEY = import.meta.env.VITE_API_KEY_BACKUP || '';
 
 const Dashboard: React.FC = () => {
   const [sequence, setSequence] = useState('');
@@ -61,37 +21,60 @@ const Dashboard: React.FC = () => {
   const [volume, setVolume] = useState(1);
   const [currentTrack, setCurrentTrack] = useState<string | undefined>('Current Sequence');
   const [isGenerating, setIsGenerating] = useState(false);
-  const audioNodeEditorRef = useRef<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const audioNodeEditorRef = useRef<AudioNodeEditorRef>(null);
 
-  const handleSequenceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSequenceChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.toUpperCase();
     if (/^[ASWNTMIO]*$/.test(value)) {
       setSequence(value);
     }
-  };
+  }, []);
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const generatedSequence = 'ASMWNTO';
-    setSequence(generatedSequence);
-    setIsGenerating(false);
-  };
+    setError(null);
+    try {
+      // Simulate AI generation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const generatedSequence = 'ASMWNTO';
+      setSequence(generatedSequence);
+    } catch (err) {
+      console.error('Error generating sequence:', err);
+      setError('Failed to generate sequence');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
 
   const handlePlayPause = useCallback(() => {
-    setIsPlaying(prev => !prev);
-    if (audioNodeEditorRef.current?.handleSequencePlay) {
-      audioNodeEditorRef.current.handleSequencePlay(sequence);
+    try {
+      setIsPlaying(prev => !prev);
+      if (audioNodeEditorRef.current?.handleSequencePlay) {
+        audioNodeEditorRef.current.handleSequencePlay(sequence);
+      }
+    } catch (err) {
+      console.error('Error toggling playback:', err);
+      setError('Failed to toggle playback');
     }
   }, [sequence]);
 
   const handleVolumeChange = useCallback((newVolume: number) => {
-    setVolume(newVolume / 100);
+    try {
+      setVolume(newVolume / 100);
+    } catch (err) {
+      console.error('Error changing volume:', err);
+      setError('Failed to change volume');
+    }
   }, []);
 
   const handleSeek = useCallback((time: number) => {
-    setCurrentTime(time);
+    try {
+      setCurrentTime(time);
+    } catch (err) {
+      console.error('Error seeking:', err);
+      setError('Failed to seek');
+    }
   }, []);
 
   return (

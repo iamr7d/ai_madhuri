@@ -8,7 +8,7 @@ import LoopIcon from '@mui/icons-material/Loop';
 import BaseNode, { BaseNodeData } from './BaseNode';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/audio';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/audio';
 
 interface MusicNodeData extends BaseNodeData {
   file?: File;
@@ -22,6 +22,7 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
   const [volume, setVolume] = useState(1);
   const [isLooping, setIsLooping] = useState(false);
   const [waveformData, setWaveformData] = useState<number[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -34,7 +35,10 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
           setWaveformData(response.data);
           drawWaveform();
         })
-        .catch(error => console.error('Error getting waveform:', error));
+        .catch(error => {
+          console.error('Error getting waveform:', error);
+          setError('Failed to load waveform data');
+        });
     }
   }, [data.file]);
 
@@ -43,30 +47,38 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
     if (!canvas || !waveformData.length) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-    const step = Math.ceil(waveformData.length / width);
-
-    ctx.clearRect(0, 0, width, height);
-    ctx.beginPath();
-    ctx.strokeStyle = '#6F7EAE';
-    ctx.lineWidth = 2;
-
-    for (let i = 0; i < width; i++) {
-      const dataIndex = i * step;
-      const x = i;
-      const y = (waveformData[dataIndex] + 1) * height / 2;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
+    if (!ctx) {
+      console.error('Failed to get canvas context');
+      return;
     }
 
-    ctx.stroke();
+    try {
+      const width = canvas.width;
+      const height = canvas.height;
+      const step = Math.ceil(waveformData.length / width);
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#6F7EAE';
+      ctx.lineWidth = 2;
+
+      for (let i = 0; i < width; i++) {
+        const dataIndex = i * step;
+        const x = i;
+        const y = (waveformData[dataIndex] + 1) * height / 2;
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+
+      ctx.stroke();
+    } catch (err) {
+      console.error('Error drawing waveform:', err);
+      setError('Failed to draw waveform');
+    }
   };
 
   const handlePlay = async () => {
@@ -80,6 +92,7 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
       setIsPlaying(true);
     } catch (error) {
       console.error('Error playing audio:', error);
+      setError('Failed to play audio');
     }
   };
 
@@ -89,6 +102,7 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
       setIsPlaying(false);
     } catch (error) {
       console.error('Error stopping audio:', error);
+      setError('Failed to stop audio');
     }
   };
 
@@ -99,6 +113,7 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
       await axios.post(`${API_BASE_URL}/volume/${id}?volume=${value}`);
     } catch (error) {
       console.error('Error setting volume:', error);
+      setError('Failed to set volume');
     }
   };
 
@@ -109,6 +124,7 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
       await axios.post(`${API_BASE_URL}/loop/${id}?loop=${newLoopState}`);
     } catch (error) {
       console.error('Error setting loop:', error);
+      setError('Failed to set loop');
     }
   };
 
@@ -198,6 +214,9 @@ const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
           />
         </Box>
       </Box>
+      {error && (
+        <Typography sx={{ color: 'error.main' }}>{error}</Typography>
+      )}
     </BaseNode>
   );
 };
