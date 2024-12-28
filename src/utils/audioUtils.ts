@@ -1,5 +1,6 @@
-import { Node } from 'react-flow-renderer';
+import { Node, Edge } from '@reactflow/core';
 import * as Tone from 'tone';
+import { CustomNode } from '../types/flowTypes';
 
 // Constants for node dimensions and spacing
 export const NODE_WIDTH = 280;
@@ -101,7 +102,7 @@ export const createVolume = (): Tone.Volume => {
  * @param source Source node
  * @param destination Destination node
  */
-export const connectNodes = (source: Tone.ToneAudioNode, destination: Tone.ToneAudioNode): void => {
+export const connectToneNodes = (source: Tone.ToneAudioNode, destination: Tone.ToneAudioNode): void => {
   source.connect(destination);
 };
 
@@ -152,4 +153,50 @@ export const connectAudioNodes = (
   }
 
   return gainNode;
+};
+
+/**
+ * Create an audio node
+ * @param type Type of node
+ * @param position Position of node
+ * @returns Node
+ */
+export const createAudioNode = (type: string, position: { x: number; y: number }): Node<CustomNode> => {
+  return {
+    id: `${type}-${Date.now()}`,
+    type,
+    position,
+    data: {
+      label: type.charAt(0).toUpperCase() + type.slice(1),
+    },
+  };
+};
+
+/**
+ * Connect nodes
+ * @param nodes Nodes to connect
+ * @param edges Edges to connect
+ */
+export const connectNodes = (nodes: Node<CustomNode>[], edges: Edge[]): void => {
+  edges.forEach((edge) => {
+    const sourceNode = nodes.find((node) => node.id === edge.source);
+    const targetNode = nodes.find((node) => node.id === edge.target);
+
+    if (sourceNode && targetNode) {
+      // Connect audio nodes using Tone.js
+      const source = Tone.getDestination(); // Replace with actual source node
+      const target = Tone.getDestination(); // Replace with actual target node
+      source.connect(target);
+    }
+  });
+};
+
+/**
+ * Disconnect nodes
+ * @param edge Edge to disconnect
+ */
+export const disconnectNodes = (edge: Edge): void => {
+  const source = Tone.getDestination(); // Replace with actual source node
+  const target = Tone.getDestination(); // Replace with actual target node
+  source.disconnect(target);
 };

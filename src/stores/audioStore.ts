@@ -18,10 +18,21 @@ interface AudioStore {
   playNode: (nodeId: string) => Promise<void>;
   stopNode: (nodeId: string) => void;
   cleanup: () => void;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  playSequence: (sequence: string) => void;
+  stopSequence: () => void;
+  setVolume: (volume: number) => void;
 }
 
 export const useAudioStore = create<AudioStore>((set, get) => ({
   nodes: new Map(),
+  isPlaying: false,
+  currentTime: 0,
+  duration: 0,
+  volume: 1,
 
   addTrackToNode: async (nodeId, file) => {
     const { nodes } = get();
@@ -153,5 +164,18 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
     });
     nodes.clear();
     set({ nodes: new Map() });
+  },
+
+  playSequence: (sequence: string) => {
+    set({ isPlaying: true });
+    // Implement sequence playback logic here
+  },
+  stopSequence: () => {
+    set({ isPlaying: false });
+    // Implement stop logic here
+  },
+  setVolume: (volume: number) => {
+    set({ volume });
+    Tone.getDestination().volume.value = Tone.gainToDb(volume);
   },
 }));

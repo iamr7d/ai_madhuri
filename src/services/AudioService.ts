@@ -1,60 +1,68 @@
 import * as Tone from 'tone';
 
 class AudioService {
-  private player: Tone.Player | null = null;
-  private audioContext: AudioContext | null = null;
+  private players: Map<string, Tone.Player>;
+  private context: Tone.Context | null;
 
-  async initialize() {
-    await Tone.start();
-    this.audioContext = Tone.context.rawContext;
+  constructor() {
+    this.players = new Map();
+    this.context = null;
   }
 
-  async loadAudio(audioData: string) {
-    if (this.player) {
-      this.player.dispose();
-    }
-    
-    const audioBuffer = await this.base64ToAudioBuffer(audioData);
-    this.player = new Tone.Player(audioBuffer).toDestination();
-  }
-
-  async play() {
-    if (this.player) {
-      await this.player.start();
+  async initialize(): Promise<void> {
+    if (!this.context) {
+      this.context = new Tone.Context();
+      await Tone.start();
+      Tone.setContext(this.context);
     }
   }
 
-  pause() {
-    if (this.player) {
-      this.player.stop();
+  async loadAudio(id: string, file: File): Promise<void> {
+    const arrayBuffer = await file.arrayBuffer();
+    const player = new Tone.Player({
+      url: URL.createObjectURL(new Blob([arrayBuffer])),
+      loop: false,
+      autostart: false,
+    }).toDestination();
+
+    await player.load();
+    this.players.set(id, player);
+  }
+
+  async play(id: string): Promise<void> {
+    const player = this.players.get(id);
+    if (player) {
+      await player.start();
     }
   }
 
-  seek(time: number) {
-    if (this.player) {
-      this.player.seek(time);
+  stop(id: string): void {
+    const player = this.players.get(id);
+    if (player) {
+      player.stop();
     }
   }
 
-  getCurrentTime(): number {
-    return this.player ? this.player.currentTime : 0;
-  }
-
-  getDuration(): number {
-    return this.player ? this.player.buffer.duration : 0;
-  }
-
-  private async base64ToAudioBuffer(base64String: string): Promise<AudioBuffer> {
-    const binaryString = window.atob(base64String);
-    const bytes = new Uint8Array(binaryString.length);
-    
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+  setVolume(id: string, volume: number): void {
+    const player = this.players.get(id);
+    if (player) {
+      player.volume.value = Tone.gainToDb(volume);
     }
-    
-    const audioData = await this.audioContext!.decodeAudioData(bytes.buffer);
-    return audioData;
+  }
+
+  getPosition(id: string): number {
+    const player = this.players.get(id);
+    return player ? player.toSeconds(player.now()) : 0;
+  }
+
+  dispose(): void {
+    this.players.forEach((player) => player.dispose());
+    this.players.clear();
+    if (this.context) {
+      this.context.dispose();
+      this.context = null;
+    }
   }
 }
 
-export const audioService = new AudioService();
+export default new AudioService();

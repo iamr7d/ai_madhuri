@@ -1,172 +1,109 @@
 import * as Tone from 'tone';
+import { CustomNode } from '../types/flowTypes';
 
 class AudioProcessingService {
-  private mainPlayer: Tone.Player | null = null;
-  private bgmPlayer: Tone.Player | null = null;
-  private mainGain: Tone.Gain;
-  private bgmGain: Tone.Gain;
-  private fadeTime = 2; // seconds
+  private nodes: Map<string, Tone.ToneAudioNode>;
+  private context: Tone.Context | null;
 
   constructor() {
-    this.mainGain = new Tone.Gain(1).toDestination();
-    this.bgmGain = new Tone.Gain(0.2).toDestination();
+    this.nodes = new Map();
+    this.context = null;
   }
 
-  async initialize() {
-    await Tone.start();
-    console.log('Audio context started');
-  }
-
-  async loadMainTrack(audioUrl: string) {
-    try {
-      this.mainPlayer = new Tone.Player({
-        url: audioUrl,
-        onload: () => {
-          console.log('Main track loaded');
-        },
-      }).connect(this.mainGain);
-    } catch (error) {
-      console.error('Error loading main track:', error);
+  async initialize(): Promise<void> {
+    if (!this.context) {
+      this.context = new Tone.Context();
+      await Tone.start();
+      Tone.setContext(this.context);
     }
   }
 
-  async loadBackgroundMusic(bgmUrl: string) {
-    try {
-      this.bgmPlayer = new Tone.Player({
-        url: bgmUrl,
-        loop: true,
-        onload: () => {
-          console.log('Background music loaded');
-        },
-      }).connect(this.bgmGain);
-    } catch (error) {
-      console.error('Error loading background music:', error);
+  createNode(type: string, options: any = {}): Tone.ToneAudioNode {
+    let node: Tone.ToneAudioNode;
+
+    switch (type) {
+      case 'player':
+        node = new Tone.Player(options).toDestination();
+        break;
+      case 'oscillator':
+        node = new Tone.Oscillator(options).toDestination();
+        break;
+      case 'filter':
+        node = new Tone.Filter(options).toDestination();
+        break;
+      case 'reverb':
+        node = new Tone.Reverb(options).toDestination();
+        break;
+      case 'delay':
+        node = new Tone.FeedbackDelay(options).toDestination();
+        break;
+      default:
+        throw new Error(`Unknown node type: ${type}`);
     }
+
+    return node;
   }
 
-  setMainVolume(volume: number) {
-    this.mainGain.gain.value = volume;
-  }
-
-  setBgmVolume(volume: number) {
-    this.bgmGain.gain.value = volume;
-  }
-
-  async playWithFade(fadeIn = true, fadeOut = true) {
-    if (!this.mainPlayer) {
-      console.error('No main track loaded');
-      return;
-    }
-
-    const now = Tone.now();
-
-    if (fadeIn) {
-      this.mainGain.gain.setValueAtTime(0, now);
-      this.mainGain.gain.linearRampToValueAtTime(1, now + this.fadeTime);
-    }
-
-    this.mainPlayer.start();
-
-    if (fadeOut && this.mainPlayer.buffer) {
-      const duration = this.mainPlayer.buffer.duration;
-      this.mainGain.gain.setValueAtTime(1, now + duration - this.fadeTime);
-      this.mainGain.gain.linearRampToValueAtTime(0, now + duration);
-    }
-  }
-
-  async playBackgroundMusic() {
-    if (!this.bgmPlayer) {
-      console.error('No background music loaded');
-      return;
-    }
-
-    this.bgmPlayer.start();
-  }
-
-  stopBackgroundMusic() {
-    if (this.bgmPlayer) {
-      this.bgmPlayer.stop();
-    }
-  }
-
-  stop() {
-    if (this.mainPlayer) {
-      this.mainPlayer.stop();
-    }
-    if (this.bgmPlayer) {
-      this.bgmPlayer.stop();
-    }
-  }
-
-  // Additional audio processing methods
-  async addReverb(amount: number) {
-    const reverb = new Tone.Reverb({
-      decay: amount,
-      wet: 0.5,
+  async loadAudioNode(id: string, file: File): Promise<void> {
+    const arrayBuffer = await file.arrayBuffer();
+    const node = new Tone.Player({
+      url: URL.createObjectURL(new Blob([arrayBuffer])),
+      loop: false,
+      autostart: false,
     }).toDestination();
-    
-    if (this.mainPlayer) {
-      this.mainPlayer.disconnect(this.mainGain);
-      this.mainPlayer.chain(reverb, this.mainGain);
+
+    await node.load();
+    this.nodes.set(id, node);
+  }
+
+  connectNodes(source: string, destination: string): void {
+    const sourceNode = this.nodes.get(source);
+    const destNode = this.nodes.get(destination);
+
+    if (sourceNode && destNode) {
+      sourceNode.connect(destNode);
     }
   }
 
-  async addDelay(time: number, feedback: number) {
-    const delay = new Tone.FeedbackDelay({
-      delayTime: time,
-      feedback: feedback,
-    }).toDestination();
-    
-    if (this.mainPlayer) {
-      this.mainPlayer.disconnect(this.mainGain);
-      this.mainPlayer.chain(delay, this.mainGain);
+  disconnectNodes(source: string, destination: string): void {
+    const sourceNode = this.nodes.get(source);
+    const destNode = this.nodes.get(destination);
+
+    if (sourceNode && destNode) {
+      sourceNode.disconnect(destNode);
     }
   }
 
-  async addFilter(frequency: number, type: BiquadFilterType = 'lowpass') {
-    const filter = new Tone.Filter({
-      frequency: frequency,
-      type: type,
-    }).toDestination();
-    
-    if (this.mainPlayer) {
-      this.mainPlayer.disconnect(this.mainGain);
-      this.mainPlayer.chain(filter, this.mainGain);
+  async playNode(id: string): Promise<void> {
+    const node = this.nodes.get(id);
+    if (node instanceof Tone.Player) {
+      await node.start();
     }
   }
 
-  async addCompressor(threshold: number, ratio: number) {
-    const compressor = new Tone.Compressor({
-      threshold: threshold,
-      ratio: ratio,
-    }).toDestination();
-    
-    if (this.mainPlayer) {
-      this.mainPlayer.disconnect(this.mainGain);
-      this.mainPlayer.chain(compressor, this.mainGain);
+  stopNode(id: string): void {
+    const node = this.nodes.get(id);
+    if (node instanceof Tone.Player) {
+      node.stop();
     }
   }
 
-  // Utility methods
-  getProgress(): number {
-    if (this.mainPlayer && this.mainPlayer.buffer) {
-      return this.mainPlayer.position / this.mainPlayer.buffer.duration;
+  getNodePosition(id: string): number {
+    const node = this.nodes.get(id);
+    if (node instanceof Tone.Player) {
+      return node.toSeconds(node.now());
     }
     return 0;
   }
 
-  getDuration(): number {
-    if (this.mainPlayer && this.mainPlayer.buffer) {
-      return this.mainPlayer.buffer.duration;
-    }
-    return 0;
-  }
-
-  seekTo(position: number) {
-    if (this.mainPlayer) {
-      this.mainPlayer.seek(position);
+  dispose(): void {
+    this.nodes.forEach((node) => node.dispose());
+    this.nodes.clear();
+    if (this.context) {
+      this.context.dispose();
+      this.context = null;
     }
   }
 }
 
-export const audioProcessingService = new AudioProcessingService();
+export default new AudioProcessingService();

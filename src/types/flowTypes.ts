@@ -1,23 +1,25 @@
-import { Node, Edge } from 'reactflow';
+import { Node, Edge } from '@reactflow/core';
+import * as Tone from 'tone';
 
-export interface CustomNode extends Node {
-  id: string;
-  type: string;
-  data: {
-    label: string;
-    audioFile?: File;
-    text?: string;
-    volume?: number;
-    isPlaying?: boolean;
-    location?: string;
-  };
-  position: {
-    x: number;
-    y: number;
-  };
+export type NodeType = 'weather' | 'news' | 'tts' | 'audioSource';
+
+export interface NodeData {
+  label: string;
+  audioFile?: File;
+  text?: string;
+  title?: string;
+  icon?: React.ReactNode;
+  selected?: boolean;
 }
 
+export type CustomNode = Node<NodeData>;
+
 export interface AudioStore {
+  nodes: Map<string, Tone.Player>;
+  addTrackToNode: (nodeId: string, file: File) => Promise<void>;
+  playNode: (nodeId: string) => Promise<void>;
+  stopNode: (nodeId: string) => void;
+  cleanup: () => void;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -28,31 +30,12 @@ export interface AudioStore {
 }
 
 export interface AudioContextStore {
-  context: AudioContext | null;
+  context: Tone.Context | null;
   initializeAudioContext: () => void;
   closeAudioContext: () => void;
-}
-
-export interface BaseNodeProps {
-  id: string;
-  type: string;
-  data: {
-    label: string;
-    title?: string;
-    icon?: React.ReactNode;
-    selected?: boolean;
-  };
 }
 
 export interface GraphState {
   nodes: CustomNode[];
   edges: Edge[];
-}
-
-export enum NodeType {
-  AUDIO = 'audio',
-  WEATHER = 'weather',
-  NEWS = 'news',
-  TTS = 'tts',
-  EFFECT = 'effect'
 }
