@@ -40,9 +40,12 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (sequence: string) => void) => void }> = ({ onSequencePlay }) => {
+  const [graphState, setGraphState] = useState<{ nodes: Node[]; edges: Edge[] }>({
+    nodes: [],
+    edges: []
+  });
+
   const {
-    state: { nodes, edges },
-    setState: setGraphState,
     undo,
     redo,
     canUndo,
@@ -55,6 +58,12 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
   const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
   const theme = useTheme();
   const { getNode, fitView, onNodesChange: onNodesChangeBase, onEdgesChange: onEdgesChangeBase, onConnect: onConnectBase } = useReactFlow();
+
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+
+  const onInit = useCallback((instance: ReactFlowInstance) => {
+    setReactFlowInstance(instance);
+  }, []);
 
   // Memoize nodeTypes to prevent recreation
   const nodeTypes = useMemo(() => ({
@@ -97,44 +106,44 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [nodes, edges, selectedNodes, undo, redo, setGraphState]);
+  }, [graphState.nodes, graphState.edges, selectedNodes, undo, redo, setGraphState]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {
-      const nextNodes = applyNodeChanges(changes, nodes);
+      const nextNodes = applyNodeChanges(changes, graphState.nodes);
       // Only update if there are actual changes
-      if (JSON.stringify(nextNodes) !== JSON.stringify(nodes)) {
+      if (JSON.stringify(nextNodes) !== JSON.stringify(graphState.nodes)) {
         setGraphState({
           nodes: nextNodes,
-          edges
+          edges: graphState.edges
         });
       }
     },
-    [nodes, edges, setGraphState]
+    [graphState.nodes, graphState.edges, setGraphState]
   );
 
   const onEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      const nextEdges = applyEdgeChanges(changes, edges);
+      const nextEdges = applyEdgeChanges(changes, graphState.edges);
       // Only update if there are actual changes
-      if (JSON.stringify(nextEdges) !== JSON.stringify(edges)) {
+      if (JSON.stringify(nextEdges) !== JSON.stringify(graphState.edges)) {
         setGraphState({
-          nodes,
+          nodes: graphState.nodes,
           edges: nextEdges
         });
       }
     },
-    [nodes, edges, setGraphState]
+    [graphState.nodes, graphState.edges, setGraphState]
   );
 
   const onConnect = useCallback(
     (connection: Connection) => {
       setGraphState({
-        nodes,
-        edges: addEdge(connection, edges)
+        nodes: graphState.nodes,
+        edges: addEdge(connection, graphState.edges)
       });
     },
-    [nodes, edges, setGraphState]
+    [graphState.nodes, graphState.edges, setGraphState]
   );
 
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
@@ -312,21 +321,18 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
       nodes: newNodes,
       edges: newEdges
     });
-    setTimeout(() => fitView(), 50);
-  }, [theme.palette, fitView]);
+    
+    // Only fit view if we have a valid instance
+    if (reactFlowInstance) {
+      setTimeout(() => {
+        reactFlowInstance.fitView({ padding: 0.2 });
+      }, 100);
+    }
+  }, [theme.palette, reactFlowInstance]);
 
-  useEffect(() => {
+  const handleSequenceGenerate = useCallback((sequence: string) => {
     generateGraph(sequence);
-    // Maintain consistent zoom level
-    setTimeout(() => {
-      fitView({ 
-        padding: 0.5,
-        duration: 800,
-        minZoom: 1,
-        maxZoom: 1
-      });
-    }, 50);
-  }, [sequence, generateGraph, fitView]);
+  }, [generateGraph]);
 
   const handleSequencePlay = useCallback((sequence: string) => {
     const nodeTypes = {
@@ -467,44 +473,51 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
   return (
     <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={graphState.nodes}
+        edges={graphState.edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        fitView
-        defaultViewport={{ x: 0, y: 0, zoom: 1.5 }}
-        minZoom={0.5}
+        onInit={onInit}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+        minZoom={0.2}
         maxZoom={2}
-        snapToGrid
-        snapGrid={[16, 16]}
+        fitView
+        fitViewOptions={{ padding: 0.4 }}
       >
-        <Background />
         <Controls 
           style={{
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            right: '24px',
-            left: 'auto',
+            padding: '8px',
             backgroundColor: 'transparent',
             border: 'none',
             boxShadow: 'none',
           }}
-          className="controls-container"
         />
+        <Background />
       </ReactFlow>
       <style>
         {`
-          .controls-container button {
-            width: 40px !important;
-            height: 40px !important;
+          .react-flow__controls {
+            background: rgba(14, 26, 45, 0.4) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 16px !important;
+            padding: 8px !important;
+            gap: 8px !important;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+          }
+
+          .react-flow__controls button {
+            width: 32px !important;
+            height: 32px !important;
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%) !important;
             border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 12px !important;
+            border-radius: 10px !important;
             color: rgba(255, 255, 255, 0.8) !important;
-            backdrop-filter: blur(8px);
             transition: all 0.3s ease !important;
             display: flex !important;
             align-items: center !important;
@@ -513,7 +526,7 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
             margin: 0 !important;
           }
 
-          .controls-container button:hover {
+          .react-flow__controls button:hover {
             background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%) !important;
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
             transform: translateY(-2px);
@@ -521,23 +534,23 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
             color: white !important;
           }
 
-          .controls-container button:active {
+          .react-flow__controls button:active {
             transform: translateY(0);
           }
 
-          .controls-container button svg {
-            width: 20px !important;
-            height: 20px !important;
+          .react-flow__controls button svg {
+            width: 14px !important;
+            height: 14px !important;
+            fill: currentColor !important;
             filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
           }
 
-          .controls-container {
-            padding: 8px !important;
-            background: transparent !important;
+          .react-flow__controls button.react-flow__controls-interactive {
+            pointer-events: all !important;
           }
         `}
       </style>
-      <NodeGenerator onGenerate={handleGenerateNodes} />
+      <NodeGenerator onGenerate={handleSequenceGenerate} />
     </Box>
   );
 };

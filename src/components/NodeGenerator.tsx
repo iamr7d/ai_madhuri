@@ -13,23 +13,26 @@ const NodeGenerator: React.FC<NodeGeneratorProps> = ({ onGenerate }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Prevent form submission and node generation on Enter key
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
+  const handleGenerateClick = () => {
     if (input.trim()) {
       onGenerate(input.trim().toUpperCase());
       setInput('');
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    // Prevent form submission on Enter key
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
-
   return (
     <Box
       component="form"
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={handleSubmit}
       sx={{
         position: 'fixed',
         bottom: '2rem',
@@ -113,8 +116,9 @@ const NodeGenerator: React.FC<NodeGeneratorProps> = ({ onGenerate }) => {
               },
             }}
           />
-          <Button 
-            onClick={handleSubmit}
+          <Button
+            variant="contained"
+            onClick={handleGenerateClick}
             disabled={!input.trim()}
             startIcon={<AutoFixHighIcon sx={{ 
               filter: 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.5))',
