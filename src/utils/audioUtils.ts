@@ -1,4 +1,5 @@
 import { Node } from 'react-flow-renderer';
+import * as Tone from 'tone';
 
 // Constants for node dimensions and spacing
 export const NODE_WIDTH = 280;
@@ -18,14 +19,90 @@ export const formatTime = (time: number): string => {
 };
 
 /**
- * Create an audio buffer from a file
+ * Create an audio context
+ * @returns AudioContext
+ */
+export const createAudioContext = (): AudioContext => {
+  return new (window.AudioContext || (window as any).webkitAudioContext)();
+};
+
+/**
+ * Load audio from a file
  * @param file Audio file
  * @returns Promise<AudioBuffer>
  */
-export const createAudioBuffer = async (file: File): Promise<AudioBuffer> => {
-  const audioContext = new AudioContext();
+export const loadAudio = async (file: File): Promise<AudioBuffer> => {
   const arrayBuffer = await file.arrayBuffer();
+  const audioContext = createAudioContext();
   return await audioContext.decodeAudioData(arrayBuffer);
+};
+
+/**
+ * Play an audio buffer
+ * @param audioContext Audio context
+ * @param buffer Audio buffer
+ * @param gainNode Gain node
+ * @returns AudioBufferSourceNode
+ */
+export const playAudioBuffer = (
+  audioContext: AudioContext,
+  buffer: AudioBuffer,
+  gainNode: GainNode
+): AudioBufferSourceNode => {
+  const source = audioContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  source.start();
+  return source;
+};
+
+/**
+ * Create a gain node
+ * @param audioContext Audio context
+ * @returns GainNode
+ */
+export const createGainNode = (audioContext: AudioContext): GainNode => {
+  return audioContext.createGain();
+};
+
+/**
+ * Fade audio
+ * @param gainNode Gain node
+ * @param startValue Start value
+ * @param endValue End value
+ * @param duration Duration
+ */
+export const fadeAudio = (gainNode: GainNode, startValue: number, endValue: number, duration: number): void => {
+  const currentTime = gainNode.context.currentTime;
+  gainNode.gain.setValueAtTime(startValue, currentTime);
+  gainNode.gain.linearRampToValueAtTime(endValue, currentTime + duration);
+};
+
+/**
+ * Create a Tone.js player
+ * @param url Audio URL
+ * @returns Tone.Player
+ */
+export const createPlayer = (url: string): Tone.Player => {
+  return new Tone.Player(url).toDestination();
+};
+
+/**
+ * Create a Tone.js volume
+ * @returns Tone.Volume
+ */
+export const createVolume = (): Tone.Volume => {
+  return new Tone.Volume().toDestination();
+};
+
+/**
+ * Connect Tone.js nodes
+ * @param source Source node
+ * @param destination Destination node
+ */
+export const connectNodes = (source: Tone.ToneAudioNode, destination: Tone.ToneAudioNode): void => {
+  source.connect(destination);
 };
 
 /**

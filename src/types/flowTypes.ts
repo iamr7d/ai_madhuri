@@ -1,47 +1,58 @@
-import { Node, Edge } from 'react-flow-renderer';
+import { Node, Edge } from 'reactflow';
 
-export interface AudioNode extends Node {
+export interface CustomNode extends Node {
+  id: string;
+  type: string;
   data: {
-    type: 'music' | 'tts' | 'weather' | 'news' | 'announcement';
     label: string;
-    color: string;
-    content?: any;
-    duration?: number;
-    fadeIn?: number;
-    fadeOut?: number;
+    audioFile?: File;
+    text?: string;
     volume?: number;
-    settings?: AudioNodeSettings;
+    isPlaying?: boolean;
+    location?: string;
+  };
+  position: {
+    x: number;
+    y: number;
   };
 }
 
-export interface AudioNodeSettings {
-  // Music settings
-  file?: File;
-  loop?: boolean;
-  
-  // TTS settings
-  text?: string;
-  voice?: string;
-  speed?: number;
-  
-  // Weather settings
-  location?: string;
-  forecastType?: 'current' | 'forecast';
-  
-  // News settings
-  category?: string;
-  count?: number;
-  sortBy?: 'latest' | 'popular';
-  
-  // Announcement settings
-  priority?: 'normal' | 'high' | 'urgent';
-  repeat?: number;
+export interface AudioStore {
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  volume: number;
+  playSequence: (sequence: string) => void;
+  stopSequence: () => void;
+  setVolume: (volume: number) => void;
 }
 
-export interface AudioSequence {
-  nodes: AudioNode[];
+export interface AudioContextStore {
+  context: AudioContext | null;
+  initializeAudioContext: () => void;
+  closeAudioContext: () => void;
+}
+
+export interface BaseNodeProps {
+  id: string;
+  type: string;
+  data: {
+    label: string;
+    title?: string;
+    icon?: React.ReactNode;
+    selected?: boolean;
+  };
+}
+
+export interface GraphState {
+  nodes: CustomNode[];
   edges: Edge[];
-  totalDuration: number;
-  created: Date;
-  modified: Date;
+}
+
+export enum NodeType {
+  AUDIO = 'audio',
+  WEATHER = 'weather',
+  NEWS = 'news',
+  TTS = 'tts',
+  EFFECT = 'effect'
 }
