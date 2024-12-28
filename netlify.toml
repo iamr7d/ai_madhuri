@@ -1,13 +1,24 @@
 [build]
   command = "npm install && npm run build"
   publish = "dist"
+  functions = ".netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
-  PYTHON_VERSION = "off"
   CI = "false"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[functions]
+  directory = ".netlify/functions"
+
+[build.processing]
+  skip_processing = true
