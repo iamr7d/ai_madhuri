@@ -20,6 +20,7 @@ import InfoNode from './nodes/InfoNode';
 import TrafficNode from './nodes/TrafficNode';
 import OtherNode from './nodes/OtherNode';
 import MusicNode from './nodes/MusicNode';
+import AINewsNode from './nodes/AINewsNode';
 
 const nodeTypes = {
   audio: AudioNode,
@@ -30,6 +31,7 @@ const nodeTypes = {
   traffic: TrafficNode,
   other: OtherNode,
   music: MusicNode,
+  ainews: AINewsNode,
 };
 
 const edgeTypes = {

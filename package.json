@@ -19,16 +19,19 @@
     "@reactflow/controls": "^11.2.14",
     "@reactflow/core": "^11.11.4",
     "@reactflow/minimap": "^11.7.14",
+    "@types/lodash": "^4.17.13",
     "@types/react-router-dom": "^5.3.3",
     "axios": "^1.6.2",
     "framer-motion": "^10.16.16",
-    "groq-sdk": "^0.3.1",
+    "groq-sdk": "^0.3.3",
+    "lodash": "^4.17.21",
     "playht": "^0.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.1.1",
     "reactflow": "^11.10.1",
-    "tone": "^14.7.77"
+    "tone": "^14.7.77",
+    "wavesurfer.js": "^7.6.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",

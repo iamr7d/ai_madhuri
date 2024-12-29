@@ -1,7 +1,7 @@
 import { Node, Edge } from 'reactflow';
 import { ReactNode } from 'react';
 
-export type NodeType = 'weather' | 'news' | 'tts' | 'audioSource';
+export type NodeType = 'weather' | 'news' | 'tts' | 'audioSource' | 'music' | 'ainews';
 
 export interface NodeData {
   label: string;

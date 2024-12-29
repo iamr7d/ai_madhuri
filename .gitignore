@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Config files with sensitive data
+src/config.ts
+src/config.local.ts
+
 # Environment variables
 .env
 .env.*

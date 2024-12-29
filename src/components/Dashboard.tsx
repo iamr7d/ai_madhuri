@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { Box, TextField, IconButton, Tooltip, Button } from '@mui/material';
+import { Box, TextField, IconButton, Tooltip, Button, Tabs, Tab, Typography } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AddIcon from '@mui/icons-material/Add';
@@ -7,6 +7,9 @@ import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AudioNodeEditor from './AudioNodeEditor';
 import PlayerBar from './PlayerBar';
 import LoadingAnimation from './LoadingAnimation';
+import ApiKeyManager from './dashboard/ApiKeyManager';
+import UserManagement from './dashboard/UserManagement';
+import Settings from './dashboard/Settings';
 import { AudioNodeEditorRef } from '../types/audio';
 
 // Move API keys to environment variables or a secure configuration
@@ -22,6 +25,7 @@ const Dashboard: React.FC = () => {
   const [currentTrack, setCurrentTrack] = useState<string | undefined>('Current Sequence');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(0);
   const audioNodeEditorRef = useRef<AudioNodeEditorRef>(null);
 
   const handleSequenceChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +79,10 @@ const Dashboard: React.FC = () => {
       console.error('Error seeking:', err);
       setError('Failed to seek');
     }
+  }, []);
+
+  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
   }, []);
 
   return (
@@ -182,60 +190,59 @@ const Dashboard: React.FC = () => {
         </Tooltip>
       </Box>
 
-      <Box sx={{ flex: 1, position: 'relative' }}>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Key
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User ID
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Secret Key
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tokens
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {apiKeys.map((item, index) => (
-              <tr key={item.key} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {item.key}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="font-mono">{item.userId}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="font-mono">{item.secretKey}</span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    {item.tokens.toLocaleString()}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <button className="text-blue-600 hover:text-blue-900 mr-3">
-                    Edit
-                  </button>
-                  <button className="text-red-600 hover:text-red-900">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Box>
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          sx={{
+            px: 2,
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            '& .MuiTab-root': {
+              color: 'rgba(255, 255, 255, 0.7)',
+              '&.Mui-selected': {
+                color: '#90CAF9'
+              }
+            }
+          }}
+        >
+          <Tab label="Editor" />
+          <Tab label="Settings" />
+          <Tab label="API Keys" />
+          <Tab label="Users" />
+          <Tab label="About" />
+        </Tabs>
 
-      <Box sx={{ flex: 1, position: 'relative' }}>
-        <AudioNodeEditor ref={audioNodeEditorRef} />
+        <Box sx={{ 
+          flex: 1, 
+          overflow: 'auto',
+          position: 'relative'
+        }}>
+          {activeTab === 0 && (
+            <AudioNodeEditor ref={audioNodeEditorRef} />
+          )}
+          {activeTab === 1 && (
+            <Settings />
+          )}
+          {activeTab === 2 && (
+            <ApiKeyManager />
+          )}
+          {activeTab === 3 && (
+            <UserManagement />
+          )}
+          {activeTab === 4 && (
+            <Box sx={{ p: 3 }}>
+              <Typography variant="h4" sx={{ color: '#fff', fontWeight: 500, mb: 4 }}>
+                About
+              </Typography>
+              {/* Add about content */}
+            </Box>
+          )}
+        </Box>
       </Box>
 
       <PlayerBar

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, { 
-  Background, 
-  Controls,
+  Background,
   useReactFlow,
   Node,
   Edge,
@@ -39,6 +38,9 @@ import TrafficIcon from '@mui/icons-material/Traffic';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import MapControls from './MapControls';
+import { styled } from '@mui/material/styles';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 
 const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (sequence: string) => void) => void }> = ({ onSequencePlay }) => {
   const [graphState, setGraphState] = useState<{ nodes: Node[]; edges: Edge[] }>({
@@ -68,11 +70,14 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
 
   // Memoize nodeTypes to prevent recreation
   const nodeTypes = useMemo(() => ({
-    musicNode: MusicNode,
+    audioNode: MusicNode,
     ttsNode: TTSNode,
     weatherNode: WeatherNode,
     newsNode: NewsNode,
-    effectNode: EffectNode
+    effectNode: EffectNode,
+    trafficNode: MusicNode,
+    otherNode: MusicNode,
+    infoNode: MusicNode
   }), []);
 
   // Track selected nodes
@@ -158,20 +163,20 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
       return;
     }
 
-    const key = event.key.toLowerCase();
-    const validKeys = ['a', 's', 'w', 'n', 't', 'm', 'i', 'o'];
+    const key = event.key;
+    const validKeys = ['A', 'S', 'W', 'N', 'T', 'M', 'I', 'O'];
     
     if (validKeys.includes(key)) {
-      setSequence(prev => prev + key.toUpperCase());
-    } else if (key === 'backspace' || key === 'delete') {
+      setSequence(prev => prev + key);
+    } else if (key === 'Backspace' || key === 'Delete') {
       setSequence(prev => prev.slice(0, -1));
-    } else if (key === 'escape') {
+    } else if (key === 'Escape') {
       setSequence('');
     }
   }, [undo, redo]);
 
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.toUpperCase();
+    const value = event.target.value;
     const validChars = value.split('').filter(char => 
       ['A', 'S', 'W', 'N', 'T', 'M', 'I', 'O'].includes(char)
     ).join('');
@@ -209,6 +214,7 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
     };
 
     setGraphState((prevState) => ({
+
       nodes: [...prevState.nodes, newNode],
       edges: prevState.edges
     }));
@@ -235,7 +241,7 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
 
   const getNodeDescription = (type: string) => {
     switch (type) {
-      case 'musicNode':
+      case 'audioNode':
         return 'A node for playing music tracks. Supports various audio formats and playback controls.';
       case 'ttsNode':
         return 'Text-to-Speech node for converting text into spoken audio.';
@@ -255,85 +261,102 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
     };
   }, [handleKeyPress]);
 
-  const generateGraph = useCallback((inputSequence: string) => {
-    const newNodes: Node[] = [];
-    const newEdges: Edge[] = [];
-    let lastNodeId = '';
+  const handleSequenceGenerate = useCallback((inputSequence: string) => {
+    if (!inputSequence) return;
+    
+    // Clear all existing nodes and edges first
+    setGraphState({ nodes: [], edges: [] });
 
-    // Calculate positions
-    const xSpacing = 300;  // Fixed spacing between nodes
-    const yBase = window.innerHeight / 2;
-    const positions = inputSequence.split('').reduce((acc, _, index) => {
-      acc[index + 1] = {
-        x: 100 + (index * xSpacing),  // Start with offset and maintain fixed spacing
-        y: yBase
-      };
-      return acc;
-    }, { 0: { x: 100, y: yBase } });
+    // Wait a brief moment to ensure old nodes are cleared
+    setTimeout(() => {
+      // Constants for layout
+      const defaultWidth = 250;  
+      const horizontalSpacing = 200; 
+      const startX = 100;
+      const baseY = 300; 
 
-    // Process sequence
-    if (inputSequence) {
-      inputSequence.split('').forEach((char, index) => {
+      const newNodes: Node[] = [];
+      const newEdges: Edge[] = [];
+
+      const sequence = inputSequence.trim().split('');
+      const totalWidth = sequence.length * (defaultWidth + horizontalSpacing);
+      const startingX = Math.max(50, (window.innerWidth - totalWidth) / 2); 
+
+      sequence.forEach((char, index) => {
         const nodeConfig = {
-          I: { type: 'musicNode', label: 'Intro', color: theme.palette.primary.main },
-          T: { type: 'ttsNode', label: 'TTS', color: theme.palette.secondary.main },
+          A: { type: 'audioNode', label: 'Audio', color: theme.palette.primary.main },
+          S: { type: 'ttsNode', label: 'Speech', color: theme.palette.secondary.main },
           W: { type: 'weatherNode', label: 'Weather', color: theme.palette.info.main },
-          S: { type: 'musicNode', label: 'Song', color: theme.palette.success.main },
           N: { type: 'newsNode', label: 'News', color: theme.palette.warning.main },
-          A: { type: 'musicNode', label: 'Announcement', color: theme.palette.error.main },
-          M: { type: 'musicNode', label: 'Music', color: theme.palette.primary.main },
-          O: { type: 'musicNode', label: 'Outro', color: theme.palette.info.main }
-        }[char] || { type: 'musicNode', label: 'Unknown', color: theme.palette.grey[500] };
+          T: { type: 'trafficNode', label: 'Traffic', color: theme.palette.error.main },
+          M: { type: 'musicNode', label: 'Music', color: theme.palette.success.main },
+          O: { type: 'otherNode', label: 'Other', color: theme.palette.grey[500] },
+          I: { type: 'infoNode', label: 'Info', color: theme.palette.info.light }
+        }[char] || { type: 'otherNode', label: 'Unknown', color: theme.palette.grey[500] };
 
-        const nodeId = `${nodeConfig.label.toLowerCase()}-${index}`;
-
-        // Add node
-        newNodes.push({
+        const nodeId = `${nodeConfig.type}-${Date.now()}-${index}`;
+        
+        // Create node with calculated position
+        const newNode = {
           id: nodeId,
           type: nodeConfig.type,
-          position: positions[index + 1],
-          data: { 
+          position: {
+            x: startingX + (index * (defaultWidth + horizontalSpacing)),
+            y: baseY
+          },
+          data: {
             label: nodeConfig.label,
             style: {
               background: alpha(nodeConfig.color, 0.1),
               border: `1px solid ${nodeConfig.color}`,
+              width: defaultWidth,
+              minHeight: '100px',
             },
-            onDuplicate: () => handleDuplicateNode(nodeId),
-            description: getNodeDescription(nodeConfig.type),
-            status: 'inactive'
+            onDelete: () => handleDeleteNode(nodeId),
+            onDuplicate: () => handleDuplicateNode(nodeId)
           }
-        });
+        };
 
-        // Add edge from previous node
-        if (lastNodeId) {
+        newNodes.push(newNode);
+
+        // Create edge to previous node if it exists
+        if (index > 0) {
           newEdges.push({
-            id: `${lastNodeId}-${nodeId}`,
-            source: lastNodeId,
+            id: `e${newNodes[index - 1].id}-${nodeId}`,
+            source: newNodes[index - 1].id,
             target: nodeId,
             type: 'smoothstep',
+            animated: true,
+            style: { stroke: theme.palette.primary.main }
           });
         }
-
-        lastNodeId = nodeId;
       });
-    }
 
-    setGraphState({
-      nodes: newNodes,
-      edges: newEdges
-    });
-    
-    // Only fit view if we have a valid instance
-    if (reactFlowInstance) {
+      // Set new nodes and edges
+      setGraphState({
+        nodes: newNodes,
+        edges: newEdges
+      });
+
+      // Fit view after nodes are added with proper padding
       setTimeout(() => {
-        reactFlowInstance.fitView({ padding: 0.2 });
+        fitView({ 
+          padding: 0.2,
+          duration: 800,
+          includeHiddenNodes: true,
+          minZoom: 0.5,
+          maxZoom: 1.5
+        });
       }, 100);
-    }
-  }, [theme.palette, reactFlowInstance]);
+    }, 50);
+  }, [theme.palette, handleDeleteNode, handleDuplicateNode, fitView]);
 
-  const handleSequenceGenerate = useCallback((sequence: string) => {
-    generateGraph(sequence);
-  }, [generateGraph]);
+  // Clear nodes when component unmounts
+  useEffect(() => {
+    return () => {
+      setGraphState({ nodes: [], edges: [] });
+    };
+  }, []);
 
   const handleSequencePlay = useCallback((sequence: string) => {
     const nodeTypes = {
@@ -390,39 +413,39 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
       switch (letter) {
         case 'A':
           label = 'Audio';
-          color = '#4f46e5'; // Indigo
+          color = '#4f46e5'; 
           break;
         case 'S':
           label = 'Speech';
-          color = '#8b5cf6'; // Purple
+          color = '#8b5cf6'; 
           break;
         case 'W':
           label = 'Weather';
-          color = '#06b6d4'; // Cyan
+          color = '#06b6d4'; 
           break;
         case 'I':
           label = 'Info';
-          color = '#3b82f6'; // Blue
+          color = '#3b82f6'; 
           break;
         case 'N':
           label = 'News';
-          color = '#ec4899'; // Pink
+          color = '#ec4899'; 
           break;
         case 'T':
           label = 'Traffic';
-          color = '#f97316'; // Orange
+          color = '#f97316'; 
           break;
         case 'O':
           label = 'Other';
-          color = '#6366f1'; // Indigo
+          color = '#6366f1'; 
           break;
         case 'M':
           label = 'Music';
-          color = '#10b981'; // Emerald
+          color = '#10b981'; 
           break;
         default:
           label = 'Unknown';
-          color = '#6b7280'; // Gray
+          color = '#6b7280'; 
       }
 
       return {
@@ -471,8 +494,119 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
     }
   };
 
+  const getSmartPosition = useCallback((nodes: Node[]) => {
+    const CARD_WIDTH = 560; // Width of our cards
+    const CARD_HEIGHT = 200; // Height of our cards
+    const VERTICAL_SPACING = 20; // Space between cards
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // Calculate center X position
+    const centerX = (viewportWidth - CARD_WIDTH) / 2;
+
+    // Calculate Y position based on existing nodes
+    const getNextYPosition = (existingNodes: Node[]) => {
+      if (existingNodes.length === 0) {
+        return 100; // Initial Y position from top
+      }
+
+      // Find the lowest Y position among existing nodes
+      const maxY = Math.max(...existingNodes.map(node => node.position.y));
+      return maxY + CARD_HEIGHT + VERTICAL_SPACING;
+    };
+
+    const newY = getNextYPosition(nodes);
+
+    // Check if we need to reset positions (if cards go too far down)
+    if (newY > viewportHeight - CARD_HEIGHT) {
+      // Reset all nodes to start from top
+      setTimeout(() => {
+        const resetNodes = [...nodes].map((node, index) => ({
+          ...node,
+          position: {
+            x: centerX,
+            y: 100 + (index * (CARD_HEIGHT + VERTICAL_SPACING))
+          }
+        }));
+        setGraphState(prev => ({
+          ...prev,
+          nodes: resetNodes
+        }));
+      }, 0);
+
+      return { x: centerX, y: 100 };
+    }
+
+    return { x: centerX, y: newY };
+  }, []);
+
+  // Smart arrangement function
+  const smartArrange = useCallback(() => {
+    const CARD_WIDTH = 400; // Decreased from 560px to match NewsNode width
+    const HORIZONTAL_SPACING = 150; // Adjusted spacing for smaller cards
+    const VERTICAL_OFFSET = 100; // Distance from top
+    const EDGE_MARGIN = 50; // Minimum margin from viewport edges
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth;
+    
+    // Sort nodes by type and then by id for consistent ordering
+    const sortedNodes = [...graphState.nodes].sort((a, b) => {
+      if (a.type !== b.type) {
+        return (a.type || '').localeCompare(b.type || '');
+      }
+      return (a.id || '').localeCompare(b.id || '');
+    });
+
+    // Calculate total width needed
+    const totalWidth = sortedNodes.length * CARD_WIDTH + 
+                      (sortedNodes.length - 1) * HORIZONTAL_SPACING;
+    
+    // Calculate starting X position to center the entire row
+    const startX = Math.max(EDGE_MARGIN, (viewportWidth - totalWidth) / 2);
+
+    // Position nodes in a row with proper spacing
+    const newNodes = sortedNodes.map((node, index) => ({
+      ...node,
+      position: {
+        x: startX + (index * (CARD_WIDTH + HORIZONTAL_SPACING)),
+        y: VERTICAL_OFFSET
+      },
+      data: {
+        ...node.data,
+        isFirstNode: index === 0,
+        isLastNode: index === sortedNodes.length - 1
+      }
+    }));
+
+    // Update positions
+    setGraphState(prev => ({
+      ...prev,
+      nodes: newNodes
+    }));
+
+    // Center view on the arranged nodes
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        reactFlowInstance.fitView({
+          padding: 0.2,
+          includeHidden: false,
+          duration: 800
+        });
+      }
+    }, 100);
+  }, [graphState.nodes, reactFlowInstance]);
+
   return (
-    <Box sx={{ width: '100%', height: '100%', position: 'relative' }}>
+    <Box sx={{ 
+      width: '100%', 
+      height: '100vh',
+      position: 'relative',
+      overflow: 'hidden',
+      bgcolor: 'transparent'
+    }}>
       <ReactFlow
         nodes={graphState.nodes}
         edges={graphState.edges}
@@ -480,77 +614,28 @@ const AudioNodeEditorContent: React.FC<{ onSequencePlay?: (handleSequencePlay: (
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        onInit={onInit}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
-        minZoom={0.2}
-        maxZoom={2}
         fitView
-        fitViewOptions={{ padding: 0.4 }}
+        style={{
+          background: 'transparent'
+        }}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        minZoom={0.5}
+        maxZoom={1.5}
+        snapToGrid={true}
+        snapGrid={[20, 20]}
+        connectionMode="loose"
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: true,
+          style: {
+            stroke: '#42DCFF',
+            strokeWidth: 2,
+          }
+        }}
       >
-        <Controls 
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            padding: '8px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            boxShadow: 'none',
-          }}
-        />
         <Background />
+        <MapControls onSmartArrange={smartArrange} />
       </ReactFlow>
-      <style>
-        {`
-          .react-flow__controls {
-            background: rgba(14, 26, 45, 0.4) !important;
-            backdrop-filter: blur(20px) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 16px !important;
-            padding: 8px !important;
-            gap: 8px !important;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
-          }
-
-          .react-flow__controls button {
-            width: 32px !important;
-            height: 32px !important;
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 10px !important;
-            color: rgba(255, 255, 255, 0.8) !important;
-            transition: all 0.3s ease !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-
-          .react-flow__controls button:hover {
-            background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px -4px rgba(99, 102, 241, 0.25) !important;
-            color: white !important;
-          }
-
-          .react-flow__controls button:active {
-            transform: translateY(0);
-          }
-
-          .react-flow__controls button svg {
-            width: 14px !important;
-            height: 14px !important;
-            fill: currentColor !important;
-            filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
-          }
-
-          .react-flow__controls button.react-flow__controls-interactive {
-            pointer-events: all !important;
-          }
-        `}
-      </style>
       <NodeGenerator onGenerate={handleSequenceGenerate} />
     </Box>
   );

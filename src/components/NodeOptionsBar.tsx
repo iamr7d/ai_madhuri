@@ -5,6 +5,7 @@ import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import WbSunnyIcon from '@mui/icons-material/WbSunny';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { NodeType } from '../types/flowTypes';
 
 interface NodeOptionsBarProps {
@@ -41,6 +42,13 @@ const NodeOptionsBar: React.FC<NodeOptionsBarProps> = () => {
       label: 'News Node', 
       color: theme.palette.error.main,
       description: 'News updates node'
+    },
+    { 
+      type: 'ainews' as NodeType, 
+      icon: SmartToyIcon, 
+      label: 'AI Tech News', 
+      color: '#2196f3',
+      description: 'AI Technology news and updates'
     }
   ];
 
