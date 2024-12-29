@@ -6,6 +6,7 @@ import { darkTheme } from './theme';
 import AudioNodeEditor from './components/AudioNodeEditor';
 import AdminPage from './pages/AdminPage';
 import ToneWrapper from './components/ToneWrapper';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const Logo = () => {
   const navigate = useNavigate();
@@ -76,31 +77,33 @@ const ProfileButton = () => {
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <ThemeProvider theme={darkTheme}>
-        <CssBaseline />
-        <ToneWrapper>
-          <Box 
-            sx={{ 
-              width: '100%',
-              height: '100vh',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column',
-              background: 'radial-gradient(circle at 50% -20%, #1a365d 0%, #0A1929 50%)',
-              position: 'relative',
-            }}
-          >
-            <Logo />
-            <ProfileButton />
-            <Routes>
-              <Route path="/" element={<AudioNodeEditor />} />
-              <Route path="/admin" element={<AdminPage />} />
-            </Routes>
-          </Box>
-        </ToneWrapper>
-      </ThemeProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <ThemeProvider theme={darkTheme}>
+          <CssBaseline />
+          <ToneWrapper>
+            <Box 
+              sx={{ 
+                width: '100%',
+                height: '100vh',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column',
+                background: 'radial-gradient(circle at 50% -20%, #1a365d 0%, #0A1929 50%)',
+                position: 'relative',
+              }}
+            >
+              <Logo />
+              <ProfileButton />
+              <Routes>
+                <Route path="/" element={<AudioNodeEditor />} />
+                <Route path="/admin" element={<AdminPage />} />
+              </Routes>
+            </Box>
+          </ToneWrapper>
+        </ThemeProvider>
+      </Router>
+    </ErrorBoundary>
   );
 };
 

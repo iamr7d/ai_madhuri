@@ -1,50 +1,55 @@
 import React from 'react';
-import { Box, Paper, Typography } from '@mui/material';
 import { Handle, Position } from 'reactflow';
+import { Box } from '@mui/material';
+import { NodeCard, NodeHeader, NodeContent } from './styles/SharedStyles';
 
-export interface BaseNodeProps {
+interface BaseNodeProps {
   id: string;
   type: string;
   data: {
-    label: string;
-    title?: string;
-    icon?: React.ReactNode;
+    icon: React.ReactNode;
+    title: string;
     selected?: boolean;
   };
   children: React.ReactNode;
 }
 
-const BaseNode: React.FC<BaseNodeProps> = ({ children, data = {}, id }) => {
-  const { icon, title, selected } = data;
-
+const BaseNode: React.FC<BaseNodeProps> = ({ id, type, data, children }) => {
   return (
-    <Paper
-      elevation={3}
-      sx={{
-        p: 2,
-        minWidth: 200,
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        border: (theme) =>
-          `2px solid ${selected ? theme.palette.primary.main : theme.palette.divider}`,
-      }}
-    >
-      <Handle type="target" position={Position.Top} id={`${id}-target`} />
-      <Box>
-        {icon && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-            {icon}
-            {title && (
-              <Typography variant="subtitle1" sx={{ ml: 1 }}>
-                {title}
-              </Typography>
-            )}
-          </Box>
-        )}
+    <NodeCard>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: 'rgba(0, 157, 255, 0.5)',
+          width: 8,
+          height: 8,
+          border: 'none'
+        }}
+      />
+      
+      <NodeHeader>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {data.icon}
+          <span>{data.title}</span>
+        </Box>
+      </NodeHeader>
+
+      <NodeContent>
         {children}
-      </Box>
-      <Handle type="source" position={Position.Bottom} id={`${id}-source`} />
-    </Paper>
+      </NodeContent>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: 'rgba(0, 157, 255, 0.5)',
+          width: 8,
+          height: 8,
+          border: 'none'
+        }}
+      />
+    </NodeCard>
   );
 };
 

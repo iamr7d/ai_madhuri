@@ -1,232 +1,147 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { NodeProps } from 'reactflow';
-import { Box, IconButton, Slider, Typography } from '@mui/material';
+import React from 'react';
+import { Handle, Position } from 'reactflow';
+import { IconButton, Slider } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import StopIcon from '@mui/icons-material/Stop';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
-import LoopIcon from '@mui/icons-material/Loop';
-import BaseNode, { BaseNodeData } from './BaseNode';
-import axios from 'axios';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/audio';
-
-interface MusicNodeData extends BaseNodeData {
-  file?: File;
-  isPlaying?: boolean;
-  volume?: number;
+interface MusicNodeProps {
+  data: {
+    label: string;
+    onDelete: () => void;
+  };
+  isConnectable: boolean;
 }
 
-const MusicNode: React.FC<NodeProps<MusicNodeData>> = (props) => {
-  const { data, id } = props;
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isLooping, setIsLooping] = useState(false);
-  const [waveformData, setWaveformData] = useState<number[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (data.file) {
-      const formData = new FormData();
-      formData.append('file', data.file);
-
-      axios.post(`${API_BASE_URL}/waveform`, formData)
-        .then(response => {
-          setWaveformData(response.data);
-          drawWaveform();
-        })
-        .catch(error => {
-          console.error('Error getting waveform:', error);
-          setError('Failed to load waveform data');
-        });
-    }
-  }, [data.file]);
-
-  const drawWaveform = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !waveformData.length) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.error('Failed to get canvas context');
-      return;
-    }
-
-    try {
-      const width = canvas.width;
-      const height = canvas.height;
-      const step = Math.ceil(waveformData.length / width);
-
-      ctx.clearRect(0, 0, width, height);
-      ctx.beginPath();
-      ctx.strokeStyle = '#6F7EAE';
-      ctx.lineWidth = 2;
-
-      for (let i = 0; i < width; i++) {
-        const dataIndex = i * step;
-        const x = i;
-        const y = (waveformData[dataIndex] + 1) * height / 2;
-
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      }
-
-      ctx.stroke();
-    } catch (err) {
-      console.error('Error drawing waveform:', err);
-      setError('Failed to draw waveform');
-    }
-  };
-
-  const handlePlay = async () => {
-    if (!data.file) return;
-
-    const formData = new FormData();
-    formData.append('file', data.file);
-
-    try {
-      await axios.post(`${API_BASE_URL}/play/${id}`, formData);
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      setError('Failed to play audio');
-    }
-  };
-
-  const handleStop = async () => {
-    try {
-      await axios.post(`${API_BASE_URL}/stop/${id}`);
-      setIsPlaying(false);
-    } catch (error) {
-      console.error('Error stopping audio:', error);
-      setError('Failed to stop audio');
-    }
-  };
-
-  const handleVolumeChange = async (_: Event, newValue: number | number[]) => {
-    const value = newValue as number;
-    setVolume(value);
-    try {
-      await axios.post(`${API_BASE_URL}/volume/${id}?volume=${value}`);
-    } catch (error) {
-      console.error('Error setting volume:', error);
-      setError('Failed to set volume');
-    }
-  };
-
-  const handleLoopToggle = async () => {
-    const newLoopState = !isLooping;
-    setIsLooping(newLoopState);
-    try {
-      await axios.post(`${API_BASE_URL}/loop/${id}?loop=${newLoopState}`);
-    } catch (error) {
-      console.error('Error setting loop:', error);
-      setError('Failed to set loop');
-    }
-  };
+const MusicNode: React.FC<MusicNodeProps> = ({ data, isConnectable }) => {
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [volume, setVolume] = React.useState(0.5);
 
   return (
-    <BaseNode
-      id={id}
-      type={props.type}
-      data={{
-        label: data.label || 'Music Player',
-        title: 'Music Player',
-        icon: <VolumeUpIcon />,
-        selected: props.selected
-      }}
-    >
-      <Box sx={{ width: '100%', height: '60px', mb: 1 }}>
-        <canvas 
-          ref={canvasRef}
-          width={200}
-          height={60}
-          style={{ width: '100%', height: '100%' }}
-        />
-      </Box>
+    <>
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{ background: '#fff' }}
+        isConnectable={isConnectable}
+      />
       
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 1,
-        mt: 1 
-      }}>
-        {!isPlaying ? (
-          <IconButton 
-            size="small" 
-            onClick={handlePlay}
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
-              '&:hover': {
-                color: 'success.main',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            <PlayArrowIcon fontSize="small" />
-          </IconButton>
-        ) : (
-          <IconButton 
-            size="small" 
-            onClick={handleStop}
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.7)',
-              '&:hover': {
-                color: 'error.main',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              }
-            }}
-          >
-            <StopIcon fontSize="small" />
-          </IconButton>
-        )}
+      <div style={{ padding: '15px', color: '#fff' }}>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          fontSize: '18px',
+          marginBottom: '8px'
+        }}>
+          <VolumeUpIcon style={{ fontSize: '24px' }} />
+          <span>Music Player</span>
+        </div>
 
-        <IconButton
-          size="small"
-          onClick={handleLoopToggle}
-          color={isLooping ? "primary" : "default"}
-          sx={{ 
-            color: isLooping ? 'primary.main' : 'rgba(255, 255, 255, 0.7)',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            }
-          }}
-        >
-          <LoopIcon fontSize="small" />
-        </IconButton>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          fontSize: '16px',
+          opacity: 0.8,
+          marginBottom: '15px'
+        }}>
+          <HeadphonesIcon style={{ fontSize: '20px' }} />
+          <span>Song</span>
+        </div>
 
-        <Box sx={{ 
+        <div style={{
+          width: '100%',
+          height: '40px',
+          background: 'rgba(30, 41, 59, 0.5)',
+          borderRadius: '8px',
+          marginBottom: '15px',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%)',
+            transform: 'translateX(-70%)'
+          }} />
+        </div>
+
+        <div style={{ 
           display: 'flex', 
           alignItems: 'center',
-          gap: 1,
-          flex: 1
+          gap: '12px'
         }}>
-          <VolumeUpIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }} />
+          <IconButton
+            size="small"
+            onClick={() => setIsPlaying(!isPlaying)}
+            style={{
+              color: '#fff',
+              background: 'rgba(255, 255, 255, 0.1)',
+              '&:hover': {
+                background: 'rgba(255, 255, 255, 0.2)'
+              }
+            }}
+          >
+            <PlayArrowIcon />
+          </IconButton>
+
           <Slider
             size="small"
             value={volume}
-            onChange={handleVolumeChange}
+            onChange={(_, value) => setVolume(value as number)}
             min={0}
             max={1}
-            step={0.01}
+            step={0.1}
             sx={{
-              color: 'rgba(255, 255, 255, 0.7)',
+              width: 100,
+              color: '#fff',
+              '& .MuiSlider-rail': {
+                opacity: 0.3,
+              },
+              '& .MuiSlider-track': {
+                border: 'none',
+              },
               '& .MuiSlider-thumb': {
                 width: 12,
                 height: 12,
-              }
+                background: '#fff',
+                '&:hover, &.Mui-focusVisible': {
+                  boxShadow: '0 0 0 8px rgba(255, 255, 255, 0.1)',
+                },
+              },
             }}
           />
-        </Box>
-      </Box>
-      {error && (
-        <Typography sx={{ color: 'error.main' }}>{error}</Typography>
-      )}
-    </BaseNode>
+
+          <div style={{ flex: 1 }} />
+
+          <IconButton
+            size="small"
+            onClick={data.onDelete}
+            style={{
+              color: '#fff',
+              background: 'rgba(255, 255, 255, 0.1)',
+              '&:hover': {
+                background: 'rgba(255, 255, 255, 0.2)'
+              }
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      </div>
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{ background: '#fff' }}
+        isConnectable={isConnectable}
+      />
+    </>
   );
 };
 

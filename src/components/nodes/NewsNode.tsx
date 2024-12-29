@@ -1,146 +1,118 @@
 import React, { useState } from 'react';
-import { 
-  Box,
-  IconButton,
-  Select,
-  MenuItem,
-  FormControl,
-  Chip,
-  Alert,
-} from '@mui/material';
+import { IconButton, Select, MenuItem, Box, Typography } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
+import DeleteIcon from '@mui/icons-material/Delete';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
-import CategoryIcon from '@mui/icons-material/Category';
-import { useTheme } from '@mui/material/styles';
 import BaseNode from './BaseNode';
-import { useAudioStore } from '../../stores/audioStore';
+import { NodeContent, NodeControls } from './styles/SharedStyles';
+import { styled } from '@mui/material/styles';
+
+const StyledSelect = styled(Select)({
+  background: 'rgba(255, 255, 255, 0.03)',
+  color: 'white',
+  borderRadius: '8px',
+  '& .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(0, 157, 255, 0.2)',
+  },
+  '&:hover .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(0, 157, 255, 0.4)',
+  },
+  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(0, 157, 255, 0.6)',
+  },
+  '& .MuiSelect-icon': {
+    color: 'rgba(0, 157, 255, 0.8)',
+  }
+});
+
+const NewsItem = styled(Box)({
+  padding: '8px',
+  borderRadius: '8px',
+  background: 'rgba(255, 255, 255, 0.03)',
+  marginBottom: '8px',
+  
+  '&:hover': {
+    background: 'rgba(0, 157, 255, 0.05)',
+  }
+});
 
 interface NewsNodeProps {
   id: string;
   data: {
     label: string;
-    category?: string;
+    onDelete?: () => void;
   };
-  selected: boolean;
+  selected?: boolean;
 }
 
-const NEWS_CATEGORIES = [
-  { value: 'breaking', label: 'Breaking News', color: '#f44336' },
-  { value: 'business', label: 'Business', color: '#2196f3' },
-  { value: 'technology', label: 'Technology', color: '#9c27b0' },
-  { value: 'sports', label: 'Sports', color: '#4caf50' },
-  { value: 'entertainment', label: 'Entertainment', color: '#ff9800' },
-  { value: 'science', label: 'Science', color: '#00bcd4' },
-];
-
 const NewsNode: React.FC<NewsNodeProps> = ({ id, data, selected }) => {
-  const theme = useTheme();
-  const [category, setCategory] = useState(data.category || '');
+  const [category, setCategory] = useState('general');
   const [isPlaying, setIsPlaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { playNode, stopNode } = useAudioStore();
-
-  const handlePlayPause = () => {
-    if (isPlaying) {
-      stopNode(id);
-    } else {
-      playNode(id);
-    }
-    setIsPlaying(!isPlaying);
-  };
 
   const handleCategoryChange = (event: any) => {
     setCategory(event.target.value);
   };
 
-  const selectedCategory = NEWS_CATEGORIES.find(cat => cat.value === category);
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
 
   return (
     <BaseNode
-      title={data.label}
-      icon={<NewspaperIcon />}
+      id={id}
       type="news"
-      selected={selected}
+      data={{
+        icon: <NewspaperIcon />,
+        title: data.label,
+        selected
+      }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 1 }}>
-            {error}
-          </Alert>
-        )}
+      <NodeContent>
+        <StyledSelect
+          value={category}
+          onChange={handleCategoryChange}
+          size="small"
+          fullWidth
+        >
+          <MenuItem value="general">General</MenuItem>
+          <MenuItem value="technology">Technology</MenuItem>
+          <MenuItem value="business">Business</MenuItem>
+          <MenuItem value="sports">Sports</MenuItem>
+          <MenuItem value="entertainment">Entertainment</MenuItem>
+        </StyledSelect>
 
-        <FormControl fullWidth size="small">
-          <Select
-            value={category}
-            onChange={handleCategoryChange}
-            displayEmpty
-            sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              color: 'rgba(255, 255, 255, 0.9)',
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: theme.palette.primary.main,
-              },
-              '& .MuiSelect-icon': {
-                color: 'rgba(255, 255, 255, 0.5)',
-              },
-            }}
-          >
-            <MenuItem value="">
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CategoryIcon sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                Select Category
-              </Box>
-            </MenuItem>
-            {NEWS_CATEGORIES.map(cat => (
-              <MenuItem key={cat.value} value={cat.value}>
-                <Chip
-                  label={cat.label}
-                  size="small"
-                  sx={{
-                    backgroundColor: `${cat.color}15`,
-                    color: cat.color,
-                    border: `1px solid ${cat.color}30`,
-                  }}
-                />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton
-            onClick={handlePlayPause}
-            size="small"
-            sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
-              '&:hover': {
-                color: theme.palette.primary.main,
-              },
-            }}
-          >
-            {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-          </IconButton>
-
-          {selectedCategory && (
-            <Chip
-              label={selectedCategory.label}
-              size="small"
-              sx={{
-                backgroundColor: `${selectedCategory.color}15`,
-                color: selectedCategory.color,
-                border: `1px solid ${selectedCategory.color}30`,
-              }}
-            />
-          )}
+        <Box sx={{ mt: 2 }}>
+          <NewsItem>
+            <Typography variant="body2" sx={{ color: 'rgba(0, 157, 255, 0.8)', mb: 0.5 }}>
+              Breaking News
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              Latest headlines from around the world...
+            </Typography>
+          </NewsItem>
+          
+          <NewsItem>
+            <Typography variant="body2" sx={{ color: 'rgba(0, 157, 255, 0.8)', mb: 0.5 }}>
+              Top Story
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+              Featured news of the day...
+            </Typography>
+          </NewsItem>
         </Box>
-      </Box>
+      </NodeContent>
+
+      <NodeControls>
+        <IconButton onClick={togglePlay} size="small">
+          {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
+        </IconButton>
+        {data.onDelete && (
+          <IconButton onClick={data.onDelete} size="small">
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </NodeControls>
     </BaseNode>
   );
 };

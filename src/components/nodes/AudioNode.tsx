@@ -1,9 +1,81 @@
 import React, { memo } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
-import { Paper, Typography, Box, Slider, IconButton } from '@mui/material';
+import { NodeProps } from 'reactflow';
+import { Box, Slider, Typography } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import { styled } from '@mui/material/styles';
+import BaseNode from './BaseNode';
+
+const StyledSlider = styled(Slider)({
+  color: '#4f46e5',
+  height: 4,
+  '& .MuiSlider-thumb': {
+    width: 12,
+    height: 12,
+    backgroundColor: '#fff',
+    boxShadow: '0 0 4px rgba(79, 70, 229, 0.5)',
+    '&:hover, &.Mui-focusVisible': {
+      boxShadow: '0 0 0 8px rgba(79, 70, 229, 0.16)',
+    },
+  },
+  '& .MuiSlider-rail': {
+    opacity: 0.2,
+    backgroundColor: '#fff',
+  },
+  '& .MuiSlider-track': {
+    background: 'linear-gradient(90deg, rgba(79, 70, 229, 0.8), rgba(79, 70, 229, 1))',
+    boxShadow: '0 0 4px rgba(79, 70, 229, 0.3)',
+  },
+});
+
+const ControlButton = styled('button')({
+  background: 'rgba(255, 255, 255, 0.05)',
+  border: '1px solid rgba(79, 70, 229, 0.2)',
+  borderRadius: '8px',
+  padding: '4px 8px',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease',
+  
+  '&:hover': {
+    background: 'rgba(79, 70, 229, 0.1)',
+    borderColor: 'rgba(79, 70, 229, 0.3)',
+    transform: 'translateY(-1px)',
+    '& svg': {
+      filter: 'drop-shadow(0 0 4px rgba(79, 70, 229, 0.5))',
+    }
+  },
+  
+  '& svg': {
+    width: '18px',
+    height: '18px',
+    transition: 'filter 0.2s ease',
+  }
+});
+
+const ParameterLabel = styled(Typography)({
+  color: 'rgba(255, 255, 255, 0.7)',
+  fontSize: '12px',
+  marginBottom: '4px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  
+  '& span': {
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontSize: '11px',
+  }
+});
+
+const Controls = styled(Box)({
+  display: 'flex',
+  gap: '8px',
+  marginTop: '12px',
+});
 
 interface AudioNodeData {
   label: string;
@@ -19,91 +91,51 @@ interface AudioNodeData {
   };
 }
 
-const AudioNode = memo(({ data, isConnectable }: NodeProps<AudioNodeData>) => {
+const AudioNode = memo(({ data, isConnectable, id, selected }: NodeProps<AudioNodeData>) => {
   const handleParameterChange = (paramKey: string) => (_: Event, value: number | number[]) => {
-    // Handle parameter changes here
     console.log(`Parameter ${paramKey} changed to:`, value);
   };
 
   return (
-    <Paper
-      sx={{
-        p: 2,
-        minWidth: 200,
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: 3,
+    <BaseNode
+      id={id}
+      type="audio"
+      data={{
+        icon: <VolumeUpIcon />,
+        title: data.label,
+        selected
       }}
     >
-      <Typography variant="subtitle2" sx={{ mb: 1 }}>
-        {data.label}
-      </Typography>
-
-      {/* Input handles */}
-      {data.type !== 'source' && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          style={{ background: '#4A9FFF' }}
-          isConnectable={isConnectable}
-        />
-      )}
-
-      {/* Parameters */}
-      <Box sx={{ my: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {data.parameters && Object.entries(data.parameters).map(([key, param]) => (
-          <Box key={key} sx={{ mb: 2 }}>
-            <Typography variant="caption" display="block" gutterBottom>
+          <Box key={key}>
+            <ParameterLabel>
               {param.label}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Slider
-                size="small"
-                value={param.value}
-                min={param.min}
-                max={param.max}
-                step={param.step}
-                onChange={handleParameterChange(key)}
-                sx={{ 
-                  '& .MuiSlider-thumb': {
-                    width: 12,
-                    height: 12,
-                  }
-                }}
-              />
-              <Typography variant="caption" sx={{ ml: 1, minWidth: 35 }}>
-                {param.value.toFixed(1)}
-              </Typography>
-            </Box>
+              <span>{param.value}</span>
+            </ParameterLabel>
+            <StyledSlider
+              value={param.value}
+              onChange={handleParameterChange(key)}
+              min={param.min}
+              max={param.max}
+              step={param.step}
+              size="small"
+            />
           </Box>
         ))}
+        
+        <Controls>
+          <ControlButton>
+            <PlayArrowIcon />
+            Play
+          </ControlButton>
+          <ControlButton>
+            <StopIcon />
+            Stop
+          </ControlButton>
+        </Controls>
       </Box>
-
-      {/* Controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-        <IconButton size="small">
-          <PlayArrowIcon fontSize="small" />
-        </IconButton>
-        <IconButton size="small">
-          <StopIcon fontSize="small" />
-        </IconButton>
-        {data.type === 'output' && (
-          <IconButton size="small">
-            <VolumeUpIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-
-      {/* Output handles */}
-      {data.type !== 'output' && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          style={{ background: '#50C878' }}
-          isConnectable={isConnectable}
-        />
-      )}
-    </Paper>
+    </BaseNode>
   );
 });
 

@@ -1,162 +1,188 @@
-import React, { useState } from 'react';
-import { Box, TextField, Button, Paper, Typography } from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, TextField, Paper, Typography } from '@mui/material';
+import { styled, keyframes } from '@mui/material/styles';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+
+const borderTravel = keyframes`
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+`;
+
+const GenerateButton = styled('button')({
+  background: 'rgba(255, 255, 255, 0.03)',
+  backdropFilter: 'blur(4px)',
+  border: 'none',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  color: 'white',
+  fontSize: '14px',
+  cursor: 'pointer',
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  transition: 'all 0.2s ease',
+  
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: '8px',
+    padding: '1px',
+    background: 'linear-gradient(90deg, transparent, transparent, rgba(0, 157, 255, 0.8), transparent, transparent)',
+    backgroundSize: '200% 100%',
+    animation: `${borderTravel} 3s linear infinite`,
+    WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+    WebkitMaskComposite: 'xor',
+    maskComposite: 'exclude',
+    pointerEvents: 'none'
+  },
+
+  boxShadow: '0 0 2px rgba(0, 157, 255, 0.2), inset 0 0 2px rgba(0, 157, 255, 0.1)',
+  
+  '&:hover': {
+    transform: 'translateY(-1px)',
+    background: 'rgba(255, 255, 255, 0.05)',
+    
+    '&::before': {
+      background: 'linear-gradient(90deg, transparent, transparent, rgba(0, 157, 255, 1), transparent, transparent)',
+      animation: `${borderTravel} 2s linear infinite`
+    }
+  }
+});
 
 interface NodeGeneratorProps {
   onGenerate: (sequence: string) => void;
 }
 
 const NodeGenerator: React.FC<NodeGeneratorProps> = ({ onGenerate }) => {
-  const [input, setInput] = useState('');
-  const theme = useTheme();
+  const [sequence, setSequence] = useState('');
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const container = document.querySelector('.react-flow__viewport');
+    if (!container) return;
+
+    let lastScrollY = 0;
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = container.scrollTop;
+          setIsVisible(currentScrollY <= lastScrollY);
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    // Prevent form submission and node generation on Enter key
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
-
-  const handleGenerateClick = () => {
-    if (input.trim()) {
-      onGenerate(input.trim().toUpperCase());
-      setInput('');
+    if (sequence.trim()) {
+      onGenerate(sequence.trim().toUpperCase());
+      setSequence('');
     }
   };
 
   return (
     <Box
-      component="form"
-      onSubmit={handleSubmit}
       sx={{
         position: 'fixed',
-        bottom: '2rem',
+        bottom: 0,
         left: '50%',
-        transform: 'translateX(-50%)',
-        width: '95%',
+        transform: isVisible ? 'translate(-50%, 0)' : 'translate(-50%, 100%)',
+        width: '100%',
         maxWidth: '800px',
+        padding: '16px',
+        transition: 'transform 0.3s ease-in-out',
         zIndex: 1000,
+        willChange: 'transform'
       }}
     >
       <Paper
         elevation={0}
         sx={{
-          p: 2,
-          bgcolor: 'rgba(14, 26, 45, 0.4)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: '16px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-          transition: 'all 0.2s',
-          '&:hover': {
-            bgcolor: 'rgba(14, 26, 45, 0.5)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-          },
+          background: 'rgba(15, 23, 42, 0.8)',
+          backdropFilter: 'blur(10px)',
+          padding: '16px',
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          boxShadow: '0 -4px 6px rgba(0, 0, 0, 0.1)',
+          position: 'relative',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderRadius: '16px 16px 0 0',
+            padding: '1px',
+            background: 'linear-gradient(90deg, transparent, rgba(0, 157, 255, 0.4), transparent)',
+            backgroundSize: '200% 100%',
+            animation: `${borderTravel} 3s linear infinite`,
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+            pointerEvents: 'none'
+          }
         }}
       >
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            mb: 1,
-            color: alpha(theme.palette.text.primary, 0.7),
-            fontStyle: 'italic'
-          }}
-        >
+        <Typography variant="caption" sx={{ opacity: 0.7 }}>
           Enter sequence (A for Audio, S for Speech, W for Weather, I for Info, N for News, T for Traffic, O for Other, M for Music)
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', gap: 2 }}>
           <TextField
             fullWidth
-            value={input}
-            onChange={(e) => setInput(e.target.value.replace(/[^ASWINTOM\s,]/gi, ''))}
-            onKeyPress={handleKeyPress}
-            placeholder="Enter node sequence (A,S,W,I,N,T,O,M)"
             size="small"
-            InputProps={{
-              sx: {
-                color: 'white',
-                '&::placeholder': {
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  opacity: 1,
-                },
-              },
-            }}
+            value={sequence}
+            onChange={(e) => setSequence(e.target.value.replace(/[^ASWINTOM\s,]/gi, ''))}
+            placeholder="Enter node sequence (A,S,W,I,N,T,O,M)"
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '12px',
+                color: 'white',
+                background: 'rgba(255, 255, 255, 0.03)',
                 '& fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)'
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                  borderColor: 'rgba(0, 157, 255, 0.4)'
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: alpha(theme.palette.primary.main, 0.5),
-                },
+                  borderColor: 'rgba(0, 157, 255, 0.6)'
+                }
               },
-              '& .MuiInputBase-input': {
-                color: 'white',
+              '& .MuiOutlinedInput-input': {
                 '&::placeholder': {
                   color: 'rgba(255, 255, 255, 0.5)',
-                  opacity: 1,
-                },
-              },
-              '& .MuiFormLabel-root': {
-                color: 'rgba(255, 255, 255, 0.5)',
-              },
-              '& .MuiFormLabel-root.Mui-focused': {
-                color: alpha(theme.palette.primary.main, 0.8),
-              },
+                  opacity: 1
+                }
+              }
             }}
           />
-          <Button
-            variant="contained"
-            onClick={handleGenerateClick}
-            disabled={!input.trim()}
-            startIcon={<AutoFixHighIcon sx={{ 
-              filter: 'drop-shadow(0 0 8px rgba(99, 102, 241, 0.5))',
-              fontSize: '20px'
-            }} />}
-            sx={{
-              minWidth: '130px',
-              height: '42px',
-              background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.9) 0%, rgba(168, 85, 247, 0.9) 100%)',
-              borderRadius: '14px',
-              color: 'white',
-              textTransform: 'none',
-              fontSize: '0.95rem',
-              fontWeight: 500,
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.2)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 1) 0%, rgba(168, 85, 247, 1) 100%)',
-                transform: 'translateY(-2px)',
-                boxShadow: '0 8px 16px -4px rgba(99, 102, 241, 0.3)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-              },
-              '&:active': {
-                transform: 'translateY(0)',
-                boxShadow: '0 4px 12px -2px rgba(99, 102, 241, 0.2)',
-              },
-              '&.Mui-disabled': {
-                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%)',
-                color: 'rgba(255, 255, 255, 0.4)',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: 'none',
-              },
-            }}
-          >
+          <GenerateButton type="submit">
+            <AutoFixHighIcon />
             Generate
-          </Button>
+          </GenerateButton>
         </Box>
       </Paper>
     </Box>

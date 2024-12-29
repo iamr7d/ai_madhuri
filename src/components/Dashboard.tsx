@@ -248,6 +248,8 @@ const Dashboard: React.FC = () => {
         onSeek={handleSeek}
         currentTrack={currentTrack}
       />
+
+      {isGenerating && <LoadingAnimation message="Generating Sequence..." />}
     </Box>
   );
 };
