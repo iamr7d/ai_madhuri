@@ -13,7 +13,8 @@ import ReactFlow, {
   addEdge,
   ReactFlowProvider,
   useKeyPress,
-  useOnSelectionChange
+  useOnSelectionChange,
+  ReactFlowInstance
 } from 'reactflow';
 import { useTheme, alpha } from '@mui/material/styles';
 import { Box, Paper, Typography, TextField, InputAdornment, IconButton, Button, Menu, MenuItem, Tooltip } from '@mui/material';
